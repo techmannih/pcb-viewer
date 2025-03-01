@@ -45,7 +45,7 @@ export const DimensionOverlay = ({
   arrowScreenBounds.width = arrowScreenBounds.right - arrowScreenBounds.left
   arrowScreenBounds.height = arrowScreenBounds.bottom - arrowScreenBounds.top
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+  const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key === "d") {
       setDStart({ x: mousePosRef.current.x, y: mousePosRef.current.y })
       setDEnd({ x: mousePosRef.current.x, y: mousePosRef.current.y })
