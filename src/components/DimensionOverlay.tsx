@@ -71,9 +71,7 @@ export const DimensionOverlay = ({
         }
       }}
       onMouseLeave={() => {
-        if (containerRef.current) {
-          containerRef.current.blur()
-        }
+        // Removed blur on mouse leave to maintain focus for key event handling.
       }}
       onMouseMove={(e: React.MouseEvent<HTMLDivElement>) => {
         const rect = e.currentTarget.getBoundingClientRect()
