@@ -23,8 +23,7 @@ export const DimensionOverlay = ({
   const [dEnd, setDEnd] = useState({ x: 0, y: 0 })
   const mousePosRef = useRef({ x: 0, y: 0 })
   const containerRef = useRef<HTMLDivElement | null>(null)
-  const container = containerRef.current!
-  const containerBounds = container?.getBoundingClientRect()
+  const containerBounds = containerRef.current?.getBoundingClientRect() || { width: 0, height: 0 }
 
   const screenDStart = applyToPoint(transform, dStart)
   const screenDEnd = applyToPoint(transform, dEnd)
@@ -61,6 +60,7 @@ export const DimensionOverlay = ({
       ref={containerRef}
       // biome-ignore lint/a11y/noNoninteractiveTabindex: <explanation>
       tabIndex={0}
+      autoFocus
       style={{ position: "relative" }}
       onKeyDown={handleKeyDown}
       onMouseEnter={() => {
