@@ -23,6 +23,9 @@ export const DimensionOverlay = ({
   const [dEnd, setDEnd] = useState({ x: 0, y: 0 })
   const mousePosRef = useRef({ x: 0, y: 0 })
   const containerRef = useRef<HTMLDivElement | null>(null)
+  useEffect(() => {
+    containerRef.current?.focus();
+  }, []);
   const containerBounds = containerRef.current?.getBoundingClientRect() || { width: 0, height: 0 }
 
   const screenDStart = applyToPoint(transform, dStart)
