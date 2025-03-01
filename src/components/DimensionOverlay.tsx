@@ -93,6 +93,7 @@ export const DimensionOverlay = ({
         } else if (dimensionToolVisible) {
           setDimensionToolVisible(false)
         }
+        containerRef.current?.focus();
       }}
     >
       {children}
