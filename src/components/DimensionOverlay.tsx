@@ -25,50 +25,6 @@ export const DimensionOverlay = ({
   const containerRef = useRef<HTMLDivElement | null>(null)
   const container = containerRef.current!
   const containerBounds = container?.getBoundingClientRect()
-  useEffect(() => {
-    const container = containerRef.current
-
-    const down = (e: KeyboardEvent) => {
-      if (e.key === "d") {
-        setDStart({ x: mousePosRef.current.x, y: mousePosRef.current.y })
-        setDEnd({ x: mousePosRef.current.x, y: mousePosRef.current.y })
-        setDimensionToolVisible((visible: boolean) => !visible)
-        setDimensionToolStretching(true)
-        e.preventDefault()
-      }
-      if (e.key === "Escape") {
-        setDimensionToolVisible(false)
-        setDimensionToolStretching(false)
-      }
-    }
-
-    const addKeyListener = () => {
-      if (container) {
-        window.addEventListener("keydown", down)
-      }
-    }
-
-    const removeKeyListener = () => {
-      if (container) {
-        window.removeEventListener("keydown", down)
-      }
-    }
-
-    if (container) {
-      container.addEventListener("focus", addKeyListener)
-      container.addEventListener("blur", removeKeyListener)
-      container.addEventListener("mouseenter", addKeyListener)
-      container.addEventListener("mouseleave", removeKeyListener)
-    }
-    return () => {
-      if (container) {
-        container.removeEventListener("focus", addKeyListener)
-        container.removeEventListener("blur", removeKeyListener)
-        container.removeEventListener("mouseenter", addKeyListener)
-        container.removeEventListener("mouseleave", removeKeyListener)
-      }
-    }
-  }, [containerRef])
 
   const screenDStart = applyToPoint(transform, dStart)
   const screenDEnd = applyToPoint(transform, dEnd)
@@ -86,12 +42,27 @@ export const DimensionOverlay = ({
   arrowScreenBounds.width = arrowScreenBounds.right - arrowScreenBounds.left
   arrowScreenBounds.height = arrowScreenBounds.bottom - arrowScreenBounds.top
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === "d") {
+      setDStart({ x: mousePosRef.current.x, y: mousePosRef.current.y })
+      setDEnd({ x: mousePosRef.current.x, y: mousePosRef.current.y })
+      setDimensionToolVisible((visible: boolean) => !visible)
+      setDimensionToolStretching(true)
+      e.preventDefault()
+    }
+    if (e.key === "Escape") {
+      setDimensionToolVisible(false)
+      setDimensionToolStretching(false)
+    }
+  }
+
   return (
     <div
       ref={containerRef}
       // biome-ignore lint/a11y/noNoninteractiveTabindex: <explanation>
       tabIndex={0}
       style={{ position: "relative" }}
+      onKeyDown={handleKeyDown}
       onMouseEnter={() => {
         if (focusOnHover && containerRef.current) {
           containerRef.current.focus()
