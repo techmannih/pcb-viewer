@@ -25,9 +25,12 @@ export const DimensionOverlay = ({
   const containerRef = useRef<HTMLDivElement | null>(null)
   const [hovering, setHovering] = useState(false)
   useEffect(() => {
-    containerRef.current?.focus();
-  }, []);
-  const containerBounds = containerRef.current?.getBoundingClientRect() || { width: 0, height: 0 }
+    containerRef.current?.focus()
+  }, [])
+  const containerBounds = containerRef.current?.getBoundingClientRect() || {
+    width: 0,
+    height: 0,
+  }
 
   const screenDStart = applyToPoint(transform, dStart)
   const screenDEnd = applyToPoint(transform, dEnd)
@@ -61,15 +64,15 @@ export const DimensionOverlay = ({
 
   useEffect(() => {
     if (hovering) {
-      window.addEventListener("keydown", handleKeyDown);
+      window.addEventListener("keydown", handleKeyDown)
     } else {
-      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keydown", handleKeyDown)
     }
     return () => {
-      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keydown", handleKeyDown)
     }
   }, [hovering, handleKeyDown])
-  
+
   return (
     <div
       ref={containerRef}
@@ -77,11 +80,11 @@ export const DimensionOverlay = ({
       tabIndex={0}
       style={{ position: "relative" }}
       onMouseEnter={() => {
-          setHovering(true);
-        }}
+        setHovering(true)
+      }}
       onMouseLeave={() => {
-          setHovering(false);
-        }}
+        setHovering(false)
+      }}
       onMouseMove={(e: React.MouseEvent<HTMLDivElement>) => {
         const rect = e.currentTarget.getBoundingClientRect()
         const x = e.clientX - rect.left
@@ -100,7 +103,7 @@ export const DimensionOverlay = ({
         } else if (dimensionToolVisible) {
           setDimensionToolVisible(false)
         }
-        containerRef.current?.focus();
+        containerRef.current?.focus()
       }}
     >
       {children}
