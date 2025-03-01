@@ -23,6 +23,7 @@ export const DimensionOverlay = ({
   const [dEnd, setDEnd] = useState({ x: 0, y: 0 })
   const mousePosRef = useRef({ x: 0, y: 0 })
   const containerRef = useRef<HTMLDivElement | null>(null)
+  const [hovering, setHovering] = useState(false)
   useEffect(() => {
     containerRef.current?.focus();
   }, []);
@@ -58,6 +59,17 @@ export const DimensionOverlay = ({
     }
   }
 
+  useEffect(() => {
+    if (hovering) {
+      window.addEventListener("keydown", handleKeyDown);
+    } else {
+      window.removeEventListener("keydown", handleKeyDown);
+    }
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    }
+  }, [hovering, handleKeyDown])
+  
   return (
     <div
       ref={containerRef}
