@@ -76,15 +76,12 @@ export const DimensionOverlay = ({
       // biome-ignore lint/a11y/noNoninteractiveTabindex: <explanation>
       tabIndex={0}
       style={{ position: "relative" }}
-      onKeyDown={handleKeyDown}
       onMouseEnter={() => {
-        if (focusOnHover && containerRef.current) {
-          containerRef.current.focus()
-        }
-      }}
+          setHovering(true);
+        }}
       onMouseLeave={() => {
-        // Removed blur on mouse leave to maintain focus for key event handling.
-      }}
+          setHovering(false);
+        }}
       onMouseMove={(e: React.MouseEvent<HTMLDivElement>) => {
         const rect = e.currentTarget.getBoundingClientRect()
         const x = e.clientX - rect.left
