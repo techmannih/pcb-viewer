@@ -63,7 +63,6 @@ export const DimensionOverlay = ({
       ref={containerRef}
       // biome-ignore lint/a11y/noNoninteractiveTabindex: <explanation>
       tabIndex={0}
-      autoFocus
       style={{ position: "relative" }}
       onKeyDown={handleKeyDown}
       onMouseEnter={() => {
