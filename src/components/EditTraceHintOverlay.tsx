@@ -43,6 +43,17 @@ const isInsideOfSmtpad = (
     // Not implemented
     return false
   }
+  if (elm.shape === "polygon") {
+    const xs = elm.points.map((p) => p.x)
+    const ys = elm.points.map((p) => p.y)
+    const left = Math.min(...xs) - padding
+    const right = Math.max(...xs) + padding
+    const top = Math.min(...ys) - padding
+    const bottom = Math.max(...ys) + padding
+    return (
+      point.x > left && point.x < right && point.y > top && point.y < bottom
+    )
+  }
   const halfWidth = elm.width / 2
   const halfHeight = elm.height / 2
 
