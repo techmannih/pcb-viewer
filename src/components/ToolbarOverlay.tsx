@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from "react"
+import { cloneElement, useEffect, useRef, useState } from "react"
 import { css } from "@emotion/css"
 import { type LayerRef, type PcbTraceError, all_layers } from "circuit-json"
 import type { AnyCircuitElement } from "circuit-json"
@@ -138,6 +138,10 @@ export const ToolbarOverlay = ({ children, elements }: Props) => {
   const [isViewMenuOpen, setViewMenuOpen] = useState(false)
   const [isLayerMenuOpen, setLayerMenuOpen] = useState(false)
   const [isErrorsOpen, setErrorsOpen] = useState(false)
+  const [highlightedErrorId, setHighlightedErrorId] = useState<string | null>(
+    null,
+  )
+  const errorsRef = useRef<HTMLDivElement | null>(null)
   const [measureToolArmed, setMeasureToolArmed] = useState(false)
   const [selectedLayer, selectLayer] = useGlobalStore(
     (s) => [s.selected_layer, s.selectLayer] as const,
@@ -169,6 +173,16 @@ export const ToolbarOverlay = ({ children, elements }: Props) => {
   )
   const setIsShowingDrcErrors = useGlobalStore((s) => s.setIsShowingDrcErrors)
   const setIsShowingPcbGroups = useGlobalStore((s) => s.setIsShowingPcbGroups)
+
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (!errorsRef.current?.contains(e.target as Node)) {
+        setHighlightedErrorId(null)
+      }
+    }
+    document.addEventListener("mousedown", handleClick)
+    return () => document.removeEventListener("mousedown", handleClick)
+  }, [])
 
   useEffect(() => {
     const arm = () => setMeasureToolArmed(true)
@@ -204,7 +218,11 @@ export const ToolbarOverlay = ({ children, elements }: Props) => {
         setViewMenuOpen(false)
       }}
     >
-      {children}
+      {children
+        ? cloneElement(children as React.ReactElement<any>, {
+            highlightedErrorId,
+          })
+        : null}
       <div
         style={{
           position: "absolute",
@@ -290,12 +308,16 @@ export const ToolbarOverlay = ({ children, elements }: Props) => {
             position: "relative",
             ...(errorCount > 0 ? { color: "red" } : {}),
           }}
-          onClick={() => setErrorsOpen(!isErrorsOpen)}
+          onClick={() => {
+            setErrorsOpen(!isErrorsOpen)
+            if (isErrorsOpen) setHighlightedErrorId(null)
+          }}
         >
           <div>{errorCount} errors</div>
         </ToolbarButton>
         {isErrorsOpen && (
           <div
+            ref={errorsRef}
             style={{
               position: "absolute",
               top: "100%",
@@ -337,20 +359,23 @@ export const ToolbarOverlay = ({ children, elements }: Props) => {
                       touchAction: "manipulation",
                       userSelect: "none",
                     }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.backgroundColor = "#333"
+                    onMouseEnter={(ev) => {
+                      ev.currentTarget.style.backgroundColor = "#333"
+                      setHighlightedErrorId(e.pcb_trace_error_id)
                     }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.backgroundColor = "#2a2a2a"
+                    onMouseLeave={(ev) => {
+                      ev.currentTarget.style.backgroundColor = "#2a2a2a"
+                      setHighlightedErrorId(null)
                     }}
-                    onTouchStart={(e) => {
-                      e.stopPropagation()
-                      e.currentTarget.style.backgroundColor = "#333"
+                    onTouchStart={(ev) => {
+                      ev.stopPropagation()
+                      ev.currentTarget.style.backgroundColor = "#333"
+                      setHighlightedErrorId(e.pcb_trace_error_id)
                     }}
-                    onTouchEnd={(e) => {
-                      e.stopPropagation()
-                      e.preventDefault()
-                      e.currentTarget.style.backgroundColor = "#2a2a2a"
+                    onTouchEnd={(ev) => {
+                      ev.stopPropagation()
+                      ev.preventDefault()
+                      ev.currentTarget.style.backgroundColor = "#2a2a2a"
 
                       const errorElement = document.querySelector(
                         `[data-error-id="${i}"]`,
@@ -367,9 +392,10 @@ export const ToolbarOverlay = ({ children, elements }: Props) => {
                           ? "rotate(90deg)"
                           : "rotate(0deg)"
                       }
+                      setHighlightedErrorId(null)
                     }}
-                    onClick={(e) => {
-                      e.stopPropagation()
+                    onClick={(ev) => {
+                      ev.stopPropagation()
                       const errorElement = document.querySelector(
                         `[data-error-id="${i}"]`,
                       ) as HTMLElement

@@ -10,6 +10,7 @@ interface Props {
   transform?: Matrix
   elements?: AnyCircuitElement[]
   children: any
+  highlightedErrorId?: string | null
 }
 
 const ErrorSVG = ({
@@ -102,7 +103,12 @@ const RouteSVG = ({
   </svg>
 )
 
-export const ErrorOverlay = ({ children, transform, elements }: Props) => {
+export const ErrorOverlay = ({
+  children,
+  transform,
+  elements,
+  highlightedErrorId,
+}: Props) => {
   if (!transform) transform = identity()
   const containerRef = useRef<HTMLDivElement | null>(null)
   const isShowingDRCErrors = useGlobalStore(
@@ -114,6 +120,10 @@ export const ErrorOverlay = ({ children, transform, elements }: Props) => {
       {children}
       {elements
         ?.filter((el): el is PcbTraceError => el.type === "pcb_trace_error")
+        .filter(
+          (el) =>
+            isShowingDRCErrors || highlightedErrorId === el.pcb_trace_error_id,
+        )
         .map((el: PcbTraceError) => {
           const { pcb_port_ids, pcb_trace_id } = el
           const port1 = elements.find(
