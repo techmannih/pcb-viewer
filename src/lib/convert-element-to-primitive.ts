@@ -139,6 +139,7 @@ export const convertElementToPrimitives = (
             _parent_source_component,
             _source_port,
             ccw_rotation: (element as any).ccw_rotation,
+            rect_border_radius: (element as any).rect_border_radius,
           },
         ]
       } else if (element.shape === "circle") {
@@ -290,6 +291,7 @@ export const convertElementToPrimitives = (
             _parent_pcb_component,
             _parent_source_component,
             _source_port,
+            rect_border_radius: (element as any).rect_border_radius,
           },
           {
             _pcb_drawing_object_id: `circle_${globalPcbDrawingObjectCount++}`,
@@ -324,6 +326,7 @@ export const convertElementToPrimitives = (
             _parent_pcb_component,
             _parent_source_component,
             _source_port,
+            rect_border_radius: (element as any).rect_border_radius,
           },
           {
             _pcb_drawing_object_id: `pill_${globalPcbDrawingObjectCount++}`,
@@ -362,6 +365,7 @@ export const convertElementToPrimitives = (
             _parent_source_component,
             _source_port,
             ccw_rotation: rect_ccw_rotation,
+            rect_border_radius: (element as any).rect_border_radius,
           },
           {
             _pcb_drawing_object_id: `pill_${globalPcbDrawingObjectCount++}`,

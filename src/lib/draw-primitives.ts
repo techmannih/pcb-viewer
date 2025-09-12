@@ -154,6 +154,7 @@ export const drawRect = (drawer: Drawer, rect: Rect) => {
     has_stroke: rect.has_stroke,
     is_stroke_dashed: rect.is_stroke_dashed,
     stroke_width: rect.stroke_width,
+    r: rect.rect_border_radius ?? rect.roundness,
   })
 }
 
@@ -163,7 +164,14 @@ export const drawRotatedRect = (drawer: Drawer, rect: Rect) => {
     layer: rect.layer,
   })
 
-  drawer.rotatedRect(rect.x, rect.y, rect.w, rect.h, rect.ccw_rotation!)
+  drawer.rotatedRect(
+    rect.x,
+    rect.y,
+    rect.w,
+    rect.h,
+    rect.ccw_rotation!,
+    rect.rect_border_radius ?? rect.roundness,
+  )
 }
 
 export const drawRotatedPill = (drawer: Drawer, pill: Pill) => {

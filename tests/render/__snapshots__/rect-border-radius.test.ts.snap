@@ -1,0 +1,82 @@
+exports[`rect_border_radius rendering draws primitives with border radius 1`] = `
+[
+  {
+    "type": "rect",
+    "x": 10,
+    "y": 10,
+    "w": 4,
+    "h": 4,
+    "mesh_fill": undefined,
+    "is_filled": undefined,
+    "has_stroke": undefined,
+    "is_stroke_dashed": undefined,
+    "stroke_width": undefined,
+    "r": 0.5
+  },
+  {
+    "type": "circle",
+    "x": 10,
+    "y": 10,
+    "r": 1
+  },
+  {
+    "type": "rect",
+    "x": 20,
+    "y": 10,
+    "w": 6,
+    "h": 6,
+    "mesh_fill": undefined,
+    "is_filled": undefined,
+    "has_stroke": undefined,
+    "is_stroke_dashed": undefined,
+    "stroke_width": undefined,
+    "r": 0.5
+  },
+  {
+    "type": "pill",
+    "x": 20,
+    "y": 10,
+    "w": 2,
+    "h": 4
+  },
+  {
+    "type": "rotatedRect",
+    "x": 30,
+    "y": 10,
+    "w": 6,
+    "h": 6,
+    "ccw_rotation": 45,
+    "r": 0.5
+  },
+  {
+    "type": "rotatedPill",
+    "x": 30,
+    "y": 10,
+    "w": 2,
+    "h": 4,
+    "ccw_rotation": 45
+  },
+  {
+    "type": "rect",
+    "x": 40,
+    "y": 10,
+    "w": 6,
+    "h": 6,
+    "mesh_fill": undefined,
+    "is_filled": undefined,
+    "has_stroke": undefined,
+    "is_stroke_dashed": undefined,
+    "stroke_width": undefined,
+    "r": 0.5
+  },
+  {
+    "type": "rotatedRect",
+    "x": 50,
+    "y": 10,
+    "w": 6,
+    "h": 6,
+    "ccw_rotation": 30,
+    "r": 0.5
+  }
+]
+`;
