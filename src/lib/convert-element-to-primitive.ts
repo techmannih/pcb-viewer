@@ -4,10 +4,29 @@ import type { Primitive } from "./types"
 import { type Point, getExpandedStroke } from "./util/expand-stroke"
 
 type MetaData = {
-  _parent_pcb_component?: any
-  _parent_source_component?: any
-  _source_port?: any
+  _parent_pcb_component?: AnyCircuitElement
+  _parent_source_component?: AnyCircuitElement
+  _source_port?: AnyCircuitElement
 }
+
+type RotatedPillHoleWithRectPadElement = AnyCircuitElement & {
+  shape: "rotated_pill_hole_with_rect_pad"
+  x: number
+  y: number
+  hole_width: number
+  hole_height: number
+  hole_ccw_rotation: number
+  rect_pad_width: number
+  rect_pad_height: number
+  rect_ccw_rotation: number
+  rect_border_radius?: number
+}
+
+const isRotatedPillHoleWithRectPadElement = (
+  element: AnyCircuitElement,
+): element is RotatedPillHoleWithRectPadElement =>
+  element.type === "pcb_plated_hole" &&
+  element.shape === "rotated_pill_hole_with_rect_pad"
 
 let globalPcbDrawingObjectCount = 0
 
@@ -40,7 +59,7 @@ export const convertElementToPrimitives = (
     "source_port_id" in element
       ? element.source_port_id
       : "pcb_port_id" in element
-        ? su(allElements as any).pcb_port.get(element.pcb_port_id!)
+        ? su(allElements).pcb_port.get(element.pcb_port_id!)
             ?.source_port_id
         : undefined
 
@@ -125,6 +144,13 @@ export const convertElementToPrimitives = (
       if (element.shape === "rect" || element.shape === "rotated_rect") {
         const { shape, x, y, width, height, layer } = element
 
+        const ccw_rotation =
+          "ccw_rotation" in element ? element.ccw_rotation : undefined
+        const roundness =
+          "rect_border_radius" in element
+            ? element.rect_border_radius
+            : undefined
+
         return [
           {
             _pcb_drawing_object_id: `rect_${globalPcbDrawingObjectCount++}`,
@@ -138,8 +164,8 @@ export const convertElementToPrimitives = (
             _parent_pcb_component,
             _parent_source_component,
             _source_port,
-            ccw_rotation: (element as any).ccw_rotation,
-            roundness: (element as any).rect_border_radius,
+            ccw_rotation,
+            roundness,
           },
         ]
       } else if (element.shape === "circle") {
@@ -275,8 +301,14 @@ export const convertElementToPrimitives = (
         ]
       } else if (element.shape === "circular_hole_with_rect_pad") {
         const { x, y, hole_diameter, rect_pad_width, rect_pad_height } = element
-        const hole_offset_x = (element as any).hole_offset_x ?? 0
-        const hole_offset_y = (element as any).hole_offset_y ?? 0
+        const hole_offset_x =
+          "hole_offset_x" in element ? element.hole_offset_x ?? 0 : 0
+        const hole_offset_y =
+          "hole_offset_y" in element ? element.hole_offset_y ?? 0 : 0
+        const roundness =
+          "rect_border_radius" in element
+            ? element.rect_border_radius
+            : undefined
 
         return [
           {
@@ -291,7 +323,7 @@ export const convertElementToPrimitives = (
             _parent_pcb_component,
             _parent_source_component,
             _source_port,
-            roundness: (element as any).rect_border_radius,
+            roundness,
           },
           {
             _pcb_drawing_object_id: `circle_${globalPcbDrawingObjectCount++}`,
@@ -313,6 +345,11 @@ export const convertElementToPrimitives = (
           rect_pad_height,
         } = element
 
+        const roundness =
+          "rect_border_radius" in element
+            ? element.rect_border_radius
+            : undefined
+
         return [
           {
             _pcb_drawing_object_id: `rect_${globalPcbDrawingObjectCount++}`,
@@ -326,7 +363,7 @@ export const convertElementToPrimitives = (
             _parent_pcb_component,
             _parent_source_component,
             _source_port,
-            roundness: (element as any).rect_border_radius,
+            roundness,
           },
           {
             _pcb_drawing_object_id: `pill_${globalPcbDrawingObjectCount++}`,
@@ -339,7 +376,7 @@ export const convertElementToPrimitives = (
             layer: "drill", // Pill-shaped hole in drill layer
           },
         ]
-      } else if (element.shape === "rotated_pill_hole_with_rect_pad") {
+      } else if (isRotatedPillHoleWithRectPadElement(element)) {
         const {
           x,
           y,
@@ -349,7 +386,8 @@ export const convertElementToPrimitives = (
           rect_pad_width,
           rect_pad_height,
           rect_ccw_rotation,
-        } = element as any // Use as any to access new properties
+          rect_border_radius,
+        } = element
 
         return [
           {
@@ -365,7 +403,7 @@ export const convertElementToPrimitives = (
             _parent_source_component,
             _source_port,
             ccw_rotation: rect_ccw_rotation,
-            roundness: (element as any).rect_border_radius,
+            roundness: rect_border_radius,
           },
           {
             _pcb_drawing_object_id: `pill_${globalPcbDrawingObjectCount++}`,
@@ -436,7 +474,8 @@ export const convertElementToPrimitives = (
         // Use getExpandedStroke to generate the polygon points
         const expandedStroke = getExpandedStroke(strokeInput, 0.5) // Use 0.5 as default width
 
-        const layer = (element.route[0] as any).layer
+        const layer =
+          "layer" in element.route[0] ? element.route[0].layer : undefined
 
         // Generate a single polygon primitive from the expanded stroke
         primitives.push({
@@ -456,8 +495,8 @@ export const convertElementToPrimitives = (
               pcb_drawing_type: "circle",
               x: r.x,
               y: r.y,
-              r: (r as any).outer_diameter / 2,
-              layer: (r as any).from_layer,
+              r: "outer_diameter" in r ? r.outer_diameter / 2 : 0,
+              layer: "from_layer" in r ? r.from_layer : undefined,
             })
           }
         })
@@ -683,7 +722,7 @@ export const convertElementToPrimitives = (
       ]
     }
     case "pcb_copper_pour": {
-      const pour = element as any
+      const pour = element
       switch (pour.shape) {
         case "rect": {
           return [
@@ -737,7 +776,7 @@ export const convertElementToPrimitives = (
       ]
     }
     case "pcb_cutout": {
-      const cutoutElement = element as any
+      const cutoutElement = element
       switch (cutoutElement.shape) {
         case "rect": {
           return [

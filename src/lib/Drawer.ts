@@ -53,7 +53,7 @@ export const LAYER_NAME_TO_COLOR = {
   top_fabrication: colors.board.f_fab,
   bottom_fabrication: colors.board.b_fab,
 
-  ...(colors.board as any),
+  ...(colors.board as Record<string, string>),
 }
 
 export type LayerNameForColor = keyof typeof LAYER_NAME_TO_COLOR
@@ -546,8 +546,12 @@ export class Drawer {
       let colorString =
         color?.[0] === "#" || color?.startsWith("rgb")
           ? color
-          : (LAYER_NAME_TO_COLOR as any)[color?.toLowerCase()]
-            ? (LAYER_NAME_TO_COLOR as any)[color?.toLowerCase()]
+          : (LAYER_NAME_TO_COLOR as Record<string, string>)[
+              color?.toLowerCase()
+            ]
+            ? (LAYER_NAME_TO_COLOR as Record<string, string>)[
+                color?.toLowerCase()
+              ]
             : null
       if (colorString === null) {
         console.warn(`Color mapping for "${color}" not found`)
