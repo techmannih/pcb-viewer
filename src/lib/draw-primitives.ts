@@ -149,6 +149,7 @@ export const drawRect = (drawer: Drawer, rect: Rect) => {
     y: rect.y,
     w: rect.w,
     h: rect.h,
+    roundness: rect.roundness,
     mesh_fill: rect.mesh_fill,
     is_filled: rect.is_filled,
     has_stroke: rect.has_stroke,
@@ -163,7 +164,15 @@ export const drawRotatedRect = (drawer: Drawer, rect: Rect) => {
     layer: rect.layer,
   })
 
-  drawer.rotatedRect(rect.x, rect.y, rect.w, rect.h, rect.ccw_rotation!)
+  drawer.rotatedRect(
+    rect.x,
+    rect.y,
+    rect.w,
+    rect.h,
+    rect.ccw_rotation!,
+    rect.mesh_fill,
+    rect.roundness,
+  )
 }
 
 export const drawRotatedPill = (drawer: Drawer, pill: Pill) => {

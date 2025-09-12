@@ -176,6 +176,7 @@ export class Drawer {
     y,
     w,
     h,
+    roundness,
     mesh_fill,
     is_filled = true,
     has_stroke,
@@ -186,6 +187,7 @@ export class Drawer {
     y: number
     w: number
     h: number
+    roundness?: number
     mesh_fill?: boolean
     is_filled?: boolean
     has_stroke?: boolean
@@ -197,13 +199,33 @@ export class Drawer {
     this.applyAperture()
     const ctx = this.getLayerCtx()
 
+    const radius$ = roundness ? scaleOnly(this.transform, roundness) : 0
+
+    const drawRoundedRectPath = () => {
+      const r = Math.min(radius$, (x2$ - x1$) / 2, (y2$ - y1$) / 2)
+      ctx.moveTo(x1$ + r, y1$)
+      ctx.lineTo(x2$ - r, y1$)
+      ctx.arcTo(x2$, y1$, x2$, y1$ + r, r)
+      ctx.lineTo(x2$, y2$ - r)
+      ctx.arcTo(x2$, y2$, x2$ - r, y2$, r)
+      ctx.lineTo(x1$ + r, y2$)
+      ctx.arcTo(x1$, y2$, x1$, y2$ - r, r)
+      ctx.lineTo(x1$, y1$ + r)
+      ctx.arcTo(x1$, y1$, x1$ + r, y1$, r)
+      ctx.closePath()
+    }
+
     const shouldDrawStroke =
       has_stroke === undefined ? is_filled === false : has_stroke
 
     if (mesh_fill) {
       ctx.save()
       ctx.beginPath()
-      ctx.rect(x1$, y1$, x2$ - x1$, y2$ - y1$)
+      if (radius$ > 0) {
+        drawRoundedRectPath()
+      } else {
+        ctx.rect(x1$, y1$, x2$ - x1$, y2$ - y1$)
+      }
       ctx.clip()
 
       // Draw the mesh pattern
@@ -212,10 +234,22 @@ export class Drawer {
       ctx.restore()
 
       // Draw the outline
-      ctx.strokeRect(x1$, y1$, x2$ - x1$, y2$ - y1$)
+      ctx.beginPath()
+      if (radius$ > 0) {
+        drawRoundedRectPath()
+      } else {
+        ctx.rect(x1$, y1$, x2$ - x1$, y2$ - y1$)
+      }
+      ctx.stroke()
     } else {
       if (is_filled !== false) {
-        ctx.fillRect(x1$, y1$, x2$ - x1$, y2$ - y1$)
+        if (radius$ > 0) {
+          ctx.beginPath()
+          drawRoundedRectPath()
+          ctx.fill()
+        } else {
+          ctx.fillRect(x1$, y1$, x2$ - x1$, y2$ - y1$)
+        }
       }
 
       if (shouldDrawStroke) {
@@ -238,7 +272,13 @@ export class Drawer {
           }
           ctx.setLineDash(dashPattern)
         }
-        ctx.strokeRect(x1$, y1$, x2$ - x1$, y2$ - y1$)
+        ctx.beginPath()
+        if (radius$ > 0) {
+          drawRoundedRectPath()
+        } else {
+          ctx.rect(x1$, y1$, x2$ - x1$, y2$ - y1$)
+        }
+        ctx.stroke()
         if (is_stroke_dashed) {
           ctx.setLineDash([]) // Reset dash pattern
         }
@@ -256,12 +296,28 @@ export class Drawer {
     h: number,
     ccw_rotation: Rotation,
     mesh_fill?: boolean,
+    roundness?: number,
   ) {
     const ctx = this.getLayerCtx()
     this.applyAperture()
 
     const [x1$, y1$] = applyToPoint(this.transform, [x - w / 2, y - h / 2])
     const [x2$, y2$] = applyToPoint(this.transform, [x + w / 2, y + h / 2])
+    const radius$ = roundness ? scaleOnly(this.transform, roundness) : 0
+
+    const drawRoundedRectPath = () => {
+      const r = Math.min(radius$, (x2$ - x1$) / 2, (y2$ - y1$) / 2)
+      ctx.moveTo(x1$ + r, y1$)
+      ctx.lineTo(x2$ - r, y1$)
+      ctx.arcTo(x2$, y1$, x2$, y1$ + r, r)
+      ctx.lineTo(x2$, y2$ - r)
+      ctx.arcTo(x2$, y2$, x2$ - r, y2$, r)
+      ctx.lineTo(x1$ + r, y2$)
+      ctx.arcTo(x1$, y2$, x1$, y2$ - r, r)
+      ctx.lineTo(x1$, y1$ + r)
+      ctx.arcTo(x1$, y1$, x1$ + r, y1$, r)
+      ctx.closePath()
+    }
 
     ctx.save()
 
@@ -273,14 +329,30 @@ export class Drawer {
 
     if (mesh_fill) {
       ctx.beginPath()
-      ctx.rect(x1$, y1$, x2$ - x1$, y2$ - y1$)
+      if (radius$ > 0) {
+        drawRoundedRectPath()
+      } else {
+        ctx.rect(x1$, y1$, x2$ - x1$, y2$ - y1$)
+      }
       ctx.clip()
 
       this.drawMeshPattern(x - w / 2, y - h / 2, w, h, 0.15)
 
-      ctx.strokeRect(x1$, y1$, x2$ - x1$, y2$ - y1$)
+      ctx.beginPath()
+      if (radius$ > 0) {
+        drawRoundedRectPath()
+      } else {
+        ctx.rect(x1$, y1$, x2$ - x1$, y2$ - y1$)
+      }
+      ctx.stroke()
     } else {
-      ctx.fillRect(x1$, y1$, x2$ - x1$, y2$ - y1$)
+      if (radius$ > 0) {
+        ctx.beginPath()
+        drawRoundedRectPath()
+        ctx.fill()
+      } else {
+        ctx.fillRect(x1$, y1$, x2$ - x1$, y2$ - y1$)
+      }
     }
 
     ctx.restore()
