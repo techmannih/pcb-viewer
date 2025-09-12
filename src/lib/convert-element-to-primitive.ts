@@ -138,6 +138,7 @@ export const convertElementToPrimitives = (
             _parent_pcb_component,
             _parent_source_component,
             _source_port,
+            roundness: (element as any).rect_border_radius,
             ccw_rotation: (element as any).ccw_rotation,
           },
         ]
@@ -290,6 +291,7 @@ export const convertElementToPrimitives = (
             _parent_pcb_component,
             _parent_source_component,
             _source_port,
+            roundness: (element as any).rect_border_radius,
           },
           {
             _pcb_drawing_object_id: `circle_${globalPcbDrawingObjectCount++}`,
@@ -324,6 +326,7 @@ export const convertElementToPrimitives = (
             _parent_pcb_component,
             _parent_source_component,
             _source_port,
+            roundness: (element as any).rect_border_radius,
           },
           {
             _pcb_drawing_object_id: `pill_${globalPcbDrawingObjectCount++}`,
@@ -361,6 +364,7 @@ export const convertElementToPrimitives = (
             _parent_pcb_component,
             _parent_source_component,
             _source_port,
+            roundness: (element as any).rect_border_radius,
             ccw_rotation: rect_ccw_rotation,
           },
           {
