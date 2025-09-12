@@ -1,7 +1,14 @@
 import type { AnyCircuitElement } from "circuit-json"
-import { su } from "@tscircuit/soup-util"
 import type { Primitive } from "./types"
 import { type Point, getExpandedStroke } from "./util/expand-stroke"
+
+const su = (elements: any[]) => ({
+  pcb_port: new Map(
+    elements
+      .filter((e: any) => e.type === "pcb_port" && e.pcb_port_id)
+      .map((e: any) => [e.pcb_port_id, e]),
+  ),
+})
 
 type MetaData = {
   _parent_pcb_component?: any

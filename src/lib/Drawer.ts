@@ -214,18 +214,19 @@ export class Drawer {
       ctx.beginPath()
       ctx.moveTo(x1$ + radius$, y1$)
       ctx.lineTo(x1$ + width$ - radius$, y1$)
-      ctx.quadraticCurveTo(x1$ + width$, y1$, x1$ + width$, y1$ + radius$)
+      ctx.arcTo(x1$ + width$, y1$, x1$ + width$, y1$ + radius$, radius$)
       ctx.lineTo(x1$ + width$, y1$ + height$ - radius$)
-      ctx.quadraticCurveTo(
+      ctx.arcTo(
         x1$ + width$,
         y1$ + height$,
         x1$ + width$ - radius$,
         y1$ + height$,
+        radius$,
       )
       ctx.lineTo(x1$ + radius$, y1$ + height$)
-      ctx.quadraticCurveTo(x1$, y1$ + height$, x1$, y1$ + height$ - radius$)
+      ctx.arcTo(x1$, y1$ + height$, x1$, y1$ + height$ - radius$, radius$)
       ctx.lineTo(x1$, y1$ + radius$)
-      ctx.quadraticCurveTo(x1$, y1$, x1$ + radius$, y1$)
+      ctx.arcTo(x1$, y1$, x1$ + radius$, y1$, radius$)
       ctx.closePath()
     }
 
@@ -317,18 +318,19 @@ export class Drawer {
       ctx.beginPath()
       ctx.moveTo(x1$ + radius$, y1$)
       ctx.lineTo(x1$ + width$ - radius$, y1$)
-      ctx.quadraticCurveTo(x1$ + width$, y1$, x1$ + width$, y1$ + radius$)
+      ctx.arcTo(x1$ + width$, y1$, x1$ + width$, y1$ + radius$, radius$)
       ctx.lineTo(x1$ + width$, y1$ + height$ - radius$)
-      ctx.quadraticCurveTo(
+      ctx.arcTo(
         x1$ + width$,
         y1$ + height$,
         x1$ + width$ - radius$,
         y1$ + height$,
+        radius$,
       )
       ctx.lineTo(x1$ + radius$, y1$ + height$)
-      ctx.quadraticCurveTo(x1$, y1$ + height$, x1$, y1$ + height$ - radius$)
+      ctx.arcTo(x1$, y1$ + height$, x1$, y1$ + height$ - radius$, radius$)
       ctx.lineTo(x1$, y1$ + radius$)
-      ctx.quadraticCurveTo(x1$, y1$, x1$ + radius$, y1$)
+      ctx.arcTo(x1$, y1$, x1$ + radius$, y1$, radius$)
       ctx.closePath()
     }
 
