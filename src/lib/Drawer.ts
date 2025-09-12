@@ -171,6 +171,28 @@ export class Drawer {
     drawLines(((angle + 90) * Math.PI) / 180)
   }
 
+  #pathRoundedRect(
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    radius: number,
+  ) {
+    const r = Math.min(radius, width / 2, height / 2)
+    ctx.beginPath()
+    ctx.moveTo(x + r, y)
+    ctx.lineTo(x + width - r, y)
+    ctx.quadraticCurveTo(x + width, y, x + width, y + r)
+    ctx.lineTo(x + width, y + height - r)
+    ctx.quadraticCurveTo(x + width, y + height, x + width - r, y + height)
+    ctx.lineTo(x + r, y + height)
+    ctx.quadraticCurveTo(x, y + height, x, y + height - r)
+    ctx.lineTo(x, y + r)
+    ctx.quadraticCurveTo(x, y, x + r, y)
+    ctx.closePath()
+  }
+
   rect({
     x,
     y,
@@ -181,6 +203,7 @@ export class Drawer {
     has_stroke,
     is_stroke_dashed,
     stroke_width,
+    roundness,
   }: {
     x: number
     y: number
@@ -191,59 +214,104 @@ export class Drawer {
     has_stroke?: boolean
     is_stroke_dashed?: boolean
     stroke_width?: number
+    roundness?: number
   }) {
     const [x1$, y1$] = applyToPoint(this.transform, [x - w / 2, y - h / 2])
     const [x2$, y2$] = applyToPoint(this.transform, [x + w / 2, y + h / 2])
     this.applyAperture()
     const ctx = this.getLayerCtx()
+    const radius$ = roundness ? scaleOnly(this.transform, roundness) : 0
 
     const shouldDrawStroke =
       has_stroke === undefined ? is_filled === false : has_stroke
 
-    if (mesh_fill) {
-      ctx.save()
-      ctx.beginPath()
-      ctx.rect(x1$, y1$, x2$ - x1$, y2$ - y1$)
-      ctx.clip()
-
-      // Draw the mesh pattern
-      this.drawMeshPattern(x - w / 2, y - h / 2, w, h, 0.15) // Adjust spacing as needed
-
-      ctx.restore()
-
-      // Draw the outline
-      ctx.strokeRect(x1$, y1$, x2$ - x1$, y2$ - y1$)
-    } else {
-      if (is_filled !== false) {
-        ctx.fillRect(x1$, y1$, x2$ - x1$, y2$ - y1$)
-      }
-
-      if (shouldDrawStroke) {
-        const originalLineWidth = ctx.lineWidth
-        if (stroke_width !== undefined) {
-          ctx.lineWidth = scaleOnly(this.transform, stroke_width)
-        }
-        if (is_stroke_dashed) {
-          let dashPattern: number[] = []
-
-          const scale = Math.abs(this.transform.a)
-          if (scale > 0) {
-            const SEGMENT_LENGTH = 0.1
-            const dash = SEGMENT_LENGTH * scale
-            const gap = dash * 1.3
-
-            if (dash > 0.5) {
-              dashPattern = [dash, gap]
-            }
+    if (radius$ > 0) {
+      if (mesh_fill) {
+        ctx.save()
+        this.#pathRoundedRect(ctx, x1$, y1$, x2$ - x1$, y2$ - y1$, radius$)
+        ctx.clip()
+        this.drawMeshPattern(x - w / 2, y - h / 2, w, h, 0.15)
+        ctx.restore()
+        this.#pathRoundedRect(ctx, x1$, y1$, x2$ - x1$, y2$ - y1$, radius$)
+        ctx.stroke()
+      } else {
+        this.#pathRoundedRect(ctx, x1$, y1$, x2$ - x1$, y2$ - y1$, radius$)
+        if (is_filled !== false) ctx.fill()
+        if (shouldDrawStroke) {
+          const originalLineWidth = ctx.lineWidth
+          if (stroke_width !== undefined) {
+            ctx.lineWidth = scaleOnly(this.transform, stroke_width)
           }
-          ctx.setLineDash(dashPattern)
+          if (is_stroke_dashed) {
+            let dashPattern: number[] = []
+
+            const scale = Math.abs(this.transform.a)
+            if (scale > 0) {
+              const SEGMENT_LENGTH = 0.1
+              const dash = SEGMENT_LENGTH * scale
+              const gap = dash * 1.3
+
+              if (dash > 0.5) {
+                dashPattern = [dash, gap]
+              }
+            }
+            ctx.setLineDash(dashPattern)
+          }
+          ctx.stroke()
+          if (is_stroke_dashed) {
+            ctx.setLineDash([])
+          }
+          if (stroke_width !== undefined) {
+            ctx.lineWidth = originalLineWidth
+          }
         }
+      }
+    } else {
+      if (mesh_fill) {
+        ctx.save()
+        ctx.beginPath()
+        ctx.rect(x1$, y1$, x2$ - x1$, y2$ - y1$)
+        ctx.clip()
+
+        // Draw the mesh pattern
+        this.drawMeshPattern(x - w / 2, y - h / 2, w, h, 0.15) // Adjust spacing as needed
+
+        ctx.restore()
+
+        // Draw the outline
         ctx.strokeRect(x1$, y1$, x2$ - x1$, y2$ - y1$)
-        if (is_stroke_dashed) {
-          ctx.setLineDash([]) // Reset dash pattern
+      } else {
+        if (is_filled !== false) {
+          ctx.fillRect(x1$, y1$, x2$ - x1$, y2$ - y1$)
         }
-        if (stroke_width !== undefined) {
-          ctx.lineWidth = originalLineWidth
+
+        if (shouldDrawStroke) {
+          const originalLineWidth = ctx.lineWidth
+          if (stroke_width !== undefined) {
+            ctx.lineWidth = scaleOnly(this.transform, stroke_width)
+          }
+          if (is_stroke_dashed) {
+            let dashPattern: number[] = []
+
+            const scale = Math.abs(this.transform.a)
+            if (scale > 0) {
+              const SEGMENT_LENGTH = 0.1
+              const dash = SEGMENT_LENGTH * scale
+              const gap = dash * 1.3
+
+              if (dash > 0.5) {
+                dashPattern = [dash, gap]
+              }
+            }
+            ctx.setLineDash(dashPattern)
+          }
+          ctx.strokeRect(x1$, y1$, x2$ - x1$, y2$ - y1$)
+          if (is_stroke_dashed) {
+            ctx.setLineDash([]) // Reset dash pattern
+          }
+          if (stroke_width !== undefined) {
+            ctx.lineWidth = originalLineWidth
+          }
         }
       }
     }
@@ -256,12 +324,14 @@ export class Drawer {
     h: number,
     ccw_rotation: Rotation,
     mesh_fill?: boolean,
+    roundness?: number,
   ) {
     const ctx = this.getLayerCtx()
     this.applyAperture()
 
     const [x1$, y1$] = applyToPoint(this.transform, [x - w / 2, y - h / 2])
     const [x2$, y2$] = applyToPoint(this.transform, [x + w / 2, y + h / 2])
+    const radius$ = roundness ? scaleOnly(this.transform, roundness) : 0
 
     ctx.save()
 
@@ -271,16 +341,29 @@ export class Drawer {
     if (ccw_rotation) ctx.rotate((cw_rotation * Math.PI) / 180)
     ctx.translate(-centerX, -centerY)
 
-    if (mesh_fill) {
-      ctx.beginPath()
-      ctx.rect(x1$, y1$, x2$ - x1$, y2$ - y1$)
-      ctx.clip()
-
-      this.drawMeshPattern(x - w / 2, y - h / 2, w, h, 0.15)
-
-      ctx.strokeRect(x1$, y1$, x2$ - x1$, y2$ - y1$)
+    if (radius$ > 0) {
+      if (mesh_fill) {
+        this.#pathRoundedRect(ctx, x1$, y1$, x2$ - x1$, y2$ - y1$, radius$)
+        ctx.clip()
+        this.drawMeshPattern(x - w / 2, y - h / 2, w, h, 0.15)
+        this.#pathRoundedRect(ctx, x1$, y1$, x2$ - x1$, y2$ - y1$, radius$)
+        ctx.stroke()
+      } else {
+        this.#pathRoundedRect(ctx, x1$, y1$, x2$ - x1$, y2$ - y1$, radius$)
+        ctx.fill()
+      }
     } else {
-      ctx.fillRect(x1$, y1$, x2$ - x1$, y2$ - y1$)
+      if (mesh_fill) {
+        ctx.beginPath()
+        ctx.rect(x1$, y1$, x2$ - x1$, y2$ - y1$)
+        ctx.clip()
+
+        this.drawMeshPattern(x - w / 2, y - h / 2, w, h, 0.15)
+
+        ctx.strokeRect(x1$, y1$, x2$ - x1$, y2$ - y1$)
+      } else {
+        ctx.fillRect(x1$, y1$, x2$ - x1$, y2$ - y1$)
+      }
     }
 
     ctx.restore()
