@@ -171,6 +171,31 @@ export class Drawer {
     drawLines(((angle + 90) * Math.PI) / 180)
   }
 
+  roundedRectPath(
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    radius: number,
+  ) {
+    const r = Math.min(radius, width / 2, height / 2)
+    ctx.moveTo(x + r, y)
+    ctx.lineTo(x + width - r, y)
+    ctx.quadraticCurveTo(x + width, y, x + width, y + r)
+    ctx.lineTo(x + width, y + height - r)
+    ctx.quadraticCurveTo(
+      x + width,
+      y + height,
+      x + width - r,
+      y + height,
+    )
+    ctx.lineTo(x + r, y + height)
+    ctx.quadraticCurveTo(x, y + height, x, y + height - r)
+    ctx.lineTo(x, y + r)
+    ctx.quadraticCurveTo(x, y, x + r, y)
+  }
+
   rect({
     x,
     y,
@@ -181,6 +206,7 @@ export class Drawer {
     has_stroke,
     is_stroke_dashed,
     stroke_width,
+    rect_border_radius,
   }: {
     x: number
     y: number
@@ -191,6 +217,7 @@ export class Drawer {
     has_stroke?: boolean
     is_stroke_dashed?: boolean
     stroke_width?: number
+    rect_border_radius?: number
   }) {
     const [x1$, y1$] = applyToPoint(this.transform, [x - w / 2, y - h / 2])
     const [x2$, y2$] = applyToPoint(this.transform, [x + w / 2, y + h / 2])
@@ -200,7 +227,12 @@ export class Drawer {
     const shouldDrawStroke =
       has_stroke === undefined ? is_filled === false : has_stroke
 
-    if (mesh_fill) {
+    const r$ =
+      rect_border_radius !== undefined
+        ? scaleOnly(this.transform, rect_border_radius)
+        : undefined
+
+    if (mesh_fill && !r$) {
       ctx.save()
       ctx.beginPath()
       ctx.rect(x1$, y1$, x2$ - x1$, y2$ - y1$)
@@ -215,7 +247,13 @@ export class Drawer {
       ctx.strokeRect(x1$, y1$, x2$ - x1$, y2$ - y1$)
     } else {
       if (is_filled !== false) {
-        ctx.fillRect(x1$, y1$, x2$ - x1$, y2$ - y1$)
+        if (r$) {
+          ctx.beginPath()
+          this.roundedRectPath(ctx, x1$, y1$, x2$ - x1$, y2$ - y1$, r$)
+          ctx.fill()
+        } else {
+          ctx.fillRect(x1$, y1$, x2$ - x1$, y2$ - y1$)
+        }
       }
 
       if (shouldDrawStroke) {
@@ -238,7 +276,13 @@ export class Drawer {
           }
           ctx.setLineDash(dashPattern)
         }
-        ctx.strokeRect(x1$, y1$, x2$ - x1$, y2$ - y1$)
+        if (r$) {
+          ctx.beginPath()
+          this.roundedRectPath(ctx, x1$, y1$, x2$ - x1$, y2$ - y1$, r$)
+          ctx.stroke()
+        } else {
+          ctx.strokeRect(x1$, y1$, x2$ - x1$, y2$ - y1$)
+        }
         if (is_stroke_dashed) {
           ctx.setLineDash([]) // Reset dash pattern
         }
@@ -256,6 +300,7 @@ export class Drawer {
     h: number,
     ccw_rotation: Rotation,
     mesh_fill?: boolean,
+    rect_border_radius?: number,
   ) {
     const ctx = this.getLayerCtx()
     this.applyAperture()
@@ -271,7 +316,12 @@ export class Drawer {
     if (ccw_rotation) ctx.rotate((cw_rotation * Math.PI) / 180)
     ctx.translate(-centerX, -centerY)
 
-    if (mesh_fill) {
+    const r$ =
+      rect_border_radius !== undefined
+        ? scaleOnly(this.transform, rect_border_radius)
+        : undefined
+
+    if (mesh_fill && !r$) {
       ctx.beginPath()
       ctx.rect(x1$, y1$, x2$ - x1$, y2$ - y1$)
       ctx.clip()
@@ -280,7 +330,13 @@ export class Drawer {
 
       ctx.strokeRect(x1$, y1$, x2$ - x1$, y2$ - y1$)
     } else {
-      ctx.fillRect(x1$, y1$, x2$ - x1$, y2$ - y1$)
+      if (r$) {
+        ctx.beginPath()
+        this.roundedRectPath(ctx, x1$, y1$, x2$ - x1$, y2$ - y1$, r$)
+        ctx.fill()
+      } else {
+        ctx.fillRect(x1$, y1$, x2$ - x1$, y2$ - y1$)
+      }
     }
 
     ctx.restore()
