@@ -1,10 +1,4 @@
-import React, {
-  Fragment,
-  useEffect,
-  useState,
-  useCallback,
-  useRef,
-} from "react"
+import React, { useEffect, useState, useRef } from "react"
 import { css } from "@emotion/css"
 import { type LayerRef, type PcbTraceError, all_layers } from "circuit-json"
 import type { AnyCircuitElement } from "circuit-json"
@@ -14,6 +8,11 @@ import packageJson from "../../package.json"
 import { useHotKey } from "hooks/useHotKey"
 import { zIndexMap } from "lib/util/z-index-map"
 import { useIsSmallScreen } from "hooks/useIsSmallScreen"
+import {
+  getAvailableCopperLayers,
+  isCopperLayer,
+  sanitizeLayerSelection,
+} from "lib/pcb-layer-utils"
 
 interface Props {
   children?: React.ReactNode
@@ -183,6 +182,11 @@ const RadioMenuItem = ({ label, checked, onClick }: RadioMenuItemProps) => {
   )
 }
 
+type PcbBoardElement = Extract<AnyCircuitElement, { type: "pcb_board" }> & {
+  layer_count?: number
+  num_layers?: number
+}
+
 export const ToolbarOverlay = ({ children, elements }: Props) => {
   const isSmallScreen = useIsSmallScreen()
 
@@ -247,25 +251,47 @@ export const ToolbarOverlay = ({ children, elements }: Props) => {
     }
   }, [])
 
-  const hotKeyCallbacks = {
-    "1": () => selectLayer("top"),
-    "2": () => selectLayer("bottom"),
-    "3": () => selectLayer("inner1"),
-    "4": () => selectLayer("inner2"),
-    "5": () => selectLayer("inner3"),
-    "6": () => selectLayer("inner4"),
-    "7": () => selectLayer("inner5"),
-    "8": () => selectLayer("inner6"),
+  const pcbBoard = elements?.find(
+    (el): el is PcbBoardElement => el.type === "pcb_board",
+  )
+
+  const layerCount = pcbBoard?.layer_count ?? pcbBoard?.num_layers
+
+  const availableCopperLayers = getAvailableCopperLayers(layerCount)
+  const processedLayers = all_layers.filter((layer) => {
+    if (!isCopperLayer(layer)) {
+      return true
+    }
+
+    const normalized = layer.replace(/-/g, "") as LayerRef
+    return availableCopperLayers.includes(normalized)
+  })
+
+  const safeSelectedLayer = sanitizeLayerSelection(
+    (selectedLayer as LayerRef) ?? ("top" as LayerRef),
+    availableCopperLayers,
+  )
+
+  useEffect(() => {
+    if (selectedLayer !== safeSelectedLayer) {
+      selectLayer(safeSelectedLayer)
+    }
+  }, [safeSelectedLayer, selectLayer, selectedLayer])
+
+  const selectLayerIfAvailable = (layer: LayerRef) => {
+    if (!isCopperLayer(layer) || availableCopperLayers.includes(layer)) {
+      selectLayer(layer)
+    }
   }
 
-  useHotKey("1", hotKeyCallbacks["1"])
-  useHotKey("2", hotKeyCallbacks["2"])
-  useHotKey("3", hotKeyCallbacks["3"])
-  useHotKey("4", hotKeyCallbacks["4"])
-  useHotKey("5", hotKeyCallbacks["5"])
-  useHotKey("6", hotKeyCallbacks["6"])
-  useHotKey("7", hotKeyCallbacks["7"])
-  useHotKey("8", hotKeyCallbacks["8"])
+  useHotKey("1", () => selectLayerIfAvailable("top"))
+  useHotKey("2", () => selectLayerIfAvailable("bottom"))
+  useHotKey("3", () => selectLayerIfAvailable("inner1"))
+  useHotKey("4", () => selectLayerIfAvailable("inner2"))
+  useHotKey("5", () => selectLayerIfAvailable("inner3"))
+  useHotKey("6", () => selectLayerIfAvailable("inner4"))
+  useHotKey("7", () => selectLayerIfAvailable("inner5"))
+  useHotKey("8", () => selectLayerIfAvailable("inner6"))
 
   const errorCount =
     elements?.filter((e) => e.type.includes("error")).length ?? 0
@@ -274,59 +300,60 @@ export const ToolbarOverlay = ({ children, elements }: Props) => {
     elements?.filter((el): el is PcbTraceError => el.type.includes("error")) ||
     []
 
-  const processedLayers = all_layers.map((l) => l.replace(/-/g, ""))
-
-  const handleMouseEnter = useCallback(() => {
+  const handleMouseEnter = () => {
     setIsMouseOverContainer(true)
-  }, [setIsMouseOverContainer])
+  }
 
-  const handleMouseLeave = useCallback(() => {
+  const handleMouseLeave = () => {
     setIsMouseOverContainer(false)
     setLayerMenuOpen(false)
     setViewMenuOpen(false)
     setErrorsOpen(false)
     setHoveredErrorId(null)
-  }, [setIsMouseOverContainer, setHoveredErrorId])
+  }
 
-  const handleLayerMenuToggle = useCallback(() => {
-    setLayerMenuOpen(!isLayerMenuOpen)
-  }, [isLayerMenuOpen])
+  const handleLayerMenuToggle = () => {
+    setLayerMenuOpen((open) => !open)
+  }
 
-  const handleErrorsToggle = useCallback(() => {
-    const newErrorsOpen = !isErrorsOpen
-    setErrorsOpen(newErrorsOpen)
-    if (newErrorsOpen) {
-      setViewMenuOpen(false)
-    }
-    if (!newErrorsOpen) {
-      setHoveredErrorId(null)
-    }
-  }, [isErrorsOpen, setHoveredErrorId])
+  const handleErrorsToggle = () => {
+    setErrorsOpen((open) => {
+      const next = !open
+      if (next) {
+        setViewMenuOpen(false)
+      } else {
+        setHoveredErrorId(null)
+      }
+      return next
+    })
+  }
 
-  const handleEditTraceToggle = useCallback(() => {
+  const handleEditTraceToggle = () => {
     setEditMode(editModes.in_draw_trace_mode ? "off" : "draw_trace")
-  }, [editModes.in_draw_trace_mode, setEditMode])
+  }
 
-  const handleMoveComponentToggle = useCallback(() => {
+  const handleMoveComponentToggle = () => {
     setEditMode(editModes.in_move_footprint_mode ? "off" : "move_footprint")
-  }, [editModes.in_move_footprint_mode, setEditMode])
+  }
 
-  const handleRatsNestToggle = useCallback(() => {
+  const handleRatsNestToggle = () => {
     setIsShowingRatsNest(!viewSettings.is_showing_rats_nest)
-  }, [viewSettings.is_showing_rats_nest, setIsShowingRatsNest])
+  }
 
-  const handleMeasureToolClick = useCallback(() => {
+  const handleMeasureToolClick = () => {
     setMeasureToolArmed(true)
     window.dispatchEvent(new Event("arm-dimension-tool"))
-  }, [])
+  }
 
-  const handleViewMenuToggle = useCallback(() => {
-    const newViewMenuOpen = !isViewMenuOpen
-    setViewMenuOpen(newViewMenuOpen)
-    if (newViewMenuOpen) {
-      setErrorsOpen(false)
-    }
-  }, [isViewMenuOpen])
+  const handleViewMenuToggle = () => {
+    setViewMenuOpen((open) => {
+      const next = !open
+      if (next) {
+        setErrorsOpen(false)
+      }
+      return next
+    })
+  }
   return (
     <div
       style={{ position: "relative", zIndex: "999 !important" }}
@@ -388,10 +415,10 @@ export const ToolbarOverlay = ({ children, elements }: Props) => {
               style={{
                 marginLeft: 2,
                 fontWeight: 500,
-                color: (LAYER_NAME_TO_COLOR as any)[selectedLayer as string],
+                color: (LAYER_NAME_TO_COLOR as any)[safeSelectedLayer as string],
               }}
             >
-              {selectedLayer as string}
+              {safeSelectedLayer as string}
             </span>
           </div>
           {isLayerMenuOpen && (
@@ -400,9 +427,9 @@ export const ToolbarOverlay = ({ children, elements }: Props) => {
                 <LayerButton
                   key={layer}
                   name={layer}
-                  selected={layer === selectedLayer}
+                  selected={layer === safeSelectedLayer}
                   onClick={() => {
-                    selectLayer(layer.replace(/-/, "") as LayerRef)
+                    selectLayerIfAvailable(layer.replace(/-/, "") as LayerRef)
                   }}
                 />
               ))}
