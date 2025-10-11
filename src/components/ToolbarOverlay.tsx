@@ -4,6 +4,7 @@ import React, {
   useState,
   useCallback,
   useRef,
+  useMemo,
 } from "react"
 import { css } from "@emotion/css"
 import { type LayerRef, type PcbTraceError, all_layers } from "circuit-json"
@@ -18,6 +19,11 @@ import { useIsSmallScreen } from "hooks/useIsSmallScreen"
 interface Props {
   children?: React.ReactNode
   elements?: AnyCircuitElement[]
+}
+
+type PcbBoardElement = Extract<AnyCircuitElement, { type: "pcb_board" }> & {
+  layer_count?: number
+  num_layers?: number
 }
 
 interface LayerButtonProps {
@@ -247,16 +253,60 @@ export const ToolbarOverlay = ({ children, elements }: Props) => {
     }
   }, [])
 
-  const hotKeyCallbacks = {
-    "1": () => selectLayer("top"),
-    "2": () => selectLayer("bottom"),
-    "3": () => selectLayer("inner1"),
-    "4": () => selectLayer("inner2"),
-    "5": () => selectLayer("inner3"),
-    "6": () => selectLayer("inner4"),
-    "7": () => selectLayer("inner5"),
-    "8": () => selectLayer("inner6"),
-  }
+  const pcbBoard = elements?.find(
+    (element): element is PcbBoardElement => element.type === "pcb_board",
+  )
+
+  const sanitizedAllLayers = useMemo<LayerRef[]>(
+    () => all_layers.map((layer) => layer.replace(/-/g, "") as LayerRef),
+    [],
+  )
+
+  const availableLayers = useMemo<LayerRef[]>(() => {
+    const layerCount = pcbBoard?.layer_count ?? pcbBoard?.num_layers
+    if (!layerCount) return sanitizedAllLayers
+
+    const copperLayers = sanitizedAllLayers.filter(
+      (layer) => layer === "top" || layer === "bottom" || /^inner\d+$/.test(layer),
+    )
+
+    const allowedLayers = copperLayers.slice(
+      0,
+      Math.min(layerCount, copperLayers.length),
+    )
+
+    return allowedLayers
+  }, [pcbBoard, sanitizedAllLayers])
+
+  useEffect(() => {
+    if (availableLayers.length === 0) return
+    if (!availableLayers.includes(selectedLayer)) {
+      selectLayer(availableLayers[0])
+    }
+  }, [availableLayers, selectLayer, selectedLayer])
+
+  const selectLayerIfAvailable = useCallback(
+    (layer: LayerRef) => {
+      if (availableLayers.includes(layer)) {
+        selectLayer(layer)
+      }
+    },
+    [availableLayers, selectLayer],
+  )
+
+  const hotKeyCallbacks = useMemo(
+    () => ({
+      "1": () => selectLayerIfAvailable("top"),
+      "2": () => selectLayerIfAvailable("bottom"),
+      "3": () => selectLayerIfAvailable("inner1"),
+      "4": () => selectLayerIfAvailable("inner2"),
+      "5": () => selectLayerIfAvailable("inner3"),
+      "6": () => selectLayerIfAvailable("inner4"),
+      "7": () => selectLayerIfAvailable("inner5"),
+      "8": () => selectLayerIfAvailable("inner6"),
+    }),
+    [selectLayerIfAvailable],
+  )
 
   useHotKey("1", hotKeyCallbacks["1"])
   useHotKey("2", hotKeyCallbacks["2"])
@@ -274,7 +324,7 @@ export const ToolbarOverlay = ({ children, elements }: Props) => {
     elements?.filter((el): el is PcbTraceError => el.type.includes("error")) ||
     []
 
-  const processedLayers = all_layers.map((l) => l.replace(/-/g, ""))
+  const processedLayers = availableLayers
 
   const handleMouseEnter = useCallback(() => {
     setIsMouseOverContainer(true)
