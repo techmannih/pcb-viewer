@@ -14,6 +14,142 @@ let globalPcbDrawingObjectCount = 0
 export const getNewPcbDrawingObjectId = (prefix: string) =>
   `${prefix}_${globalPcbDrawingObjectCount++}`
 
+const parseLengthValue = (value: unknown, fallback: number): number => {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim().toLowerCase()
+    if (!trimmed) return fallback
+
+    const numericMatch = trimmed.match(/-?\d+(?:\.\d+)?/)
+    if (!numericMatch) return fallback
+
+    const parsed = Number.parseFloat(numericMatch[0])
+    if (!Number.isFinite(parsed)) return fallback
+
+    if (trimmed.endsWith("mil")) return parsed * 0.0254
+    if (trimmed.endsWith("mm")) return parsed
+    if (trimmed.endsWith("cm")) return parsed * 10
+    if (trimmed.endsWith("um")) return parsed / 1000
+    if (trimmed.endsWith("in")) return parsed * 25.4
+    if (trimmed.endsWith("\"")) return parsed * 25.4
+    if (trimmed.endsWith("m")) return parsed * 1000
+
+    return parsed
+  }
+
+  return fallback
+}
+
+const isPointLike = (value: unknown): value is Point =>
+  typeof value === "object" &&
+  value !== null &&
+  typeof (value as any).x === "number" &&
+  typeof (value as any).y === "number"
+
+const getPointFromElement = (
+  element: AnyCircuitElement | undefined,
+): Point | null => {
+  if (!element) return null
+  const candidate = element as any
+
+  if (typeof candidate.x === "number" && typeof candidate.y === "number") {
+    return { x: candidate.x, y: candidate.y }
+  }
+
+  if (
+    candidate.center &&
+    typeof candidate.center.x === "number" &&
+    typeof candidate.center.y === "number"
+  ) {
+    return { x: candidate.center.x, y: candidate.center.y }
+  }
+
+  if (
+    candidate.anchor_position &&
+    typeof candidate.anchor_position.x === "number" &&
+    typeof candidate.anchor_position.y === "number"
+  ) {
+    return {
+      x: candidate.anchor_position.x,
+      y: candidate.anchor_position.y,
+    }
+  }
+
+  if (
+    candidate.position &&
+    typeof candidate.position.x === "number" &&
+    typeof candidate.position.y === "number"
+  ) {
+    return { x: candidate.position.x, y: candidate.position.y }
+  }
+
+  if (
+    candidate.point &&
+    typeof candidate.point.x === "number" &&
+    typeof candidate.point.y === "number"
+  ) {
+    return { x: candidate.point.x, y: candidate.point.y }
+  }
+
+  return null
+}
+
+const findElementReferencingId = (
+  id: string,
+  allElements: AnyCircuitElement[],
+  exclude?: AnyCircuitElement,
+): AnyCircuitElement | undefined => {
+  for (const element of allElements) {
+    if (exclude && element === exclude) continue
+
+    const entries = Object.entries(element as Record<string, unknown>)
+    for (const [key, value] of entries) {
+      if (typeof value === "string" && value === id && key.endsWith("_id")) {
+        return element
+      }
+    }
+  }
+
+  return undefined
+}
+
+const resolvePointReference = (
+  ref: Point | string | undefined,
+  allElements: AnyCircuitElement[],
+  currentElement: AnyCircuitElement,
+): Point | null => {
+  if (!ref) return null
+  if (isPointLike(ref)) return ref
+
+  if (typeof ref === "string") {
+    const parsedPoint = ref
+      .split(/[;,\s]+/)
+      .map((part) => Number.parseFloat(part))
+
+    if (parsedPoint.length === 2 && parsedPoint.every((n) => Number.isFinite(n))) {
+      return { x: parsedPoint[0], y: parsedPoint[1] }
+    }
+
+    const referencedElement = findElementReferencingId(ref, allElements, currentElement)
+    const point = getPointFromElement(referencedElement)
+    if (point) return point
+  }
+
+  return null
+}
+
+const rotateVector = (vector: Point, angle: number): Point => {
+  const cos = Math.cos(angle)
+  const sin = Math.sin(angle)
+  return {
+    x: vector.x * cos - vector.y * sin,
+    y: vector.x * sin + vector.y * cos,
+  }
+}
+
 export const convertElementToPrimitives = (
   element: AnyCircuitElement,
   allElements: AnyCircuitElement[],
@@ -646,6 +782,174 @@ export const convertElementToPrimitives = (
             element.layer === "bottom" ? "bottom_silkscreen" : "top_silkscreen",
         },
       ]
+    }
+
+    case "pcb_note_dimension":
+    case "pcb_fabrication_note_dimension": {
+      const isFabrication = element.type === "pcb_fabrication_note_dimension"
+      const fromPoint = resolvePointReference(
+        (element as any).from,
+        allElements,
+        element,
+      )
+      const toPoint = resolvePointReference(
+        (element as any).to,
+        allElements,
+        element,
+      )
+
+      if (!fromPoint || !toPoint) {
+        return []
+      }
+
+      const dx = toPoint.x - fromPoint.x
+      const dy = toPoint.y - fromPoint.y
+      const distance = Math.hypot(dx, dy)
+      if (distance === 0) {
+        return []
+      }
+
+      const unit: Point = { x: dx / distance, y: dy / distance }
+      const normal: Point = { x: -unit.y, y: unit.x }
+
+      const arrowSize = Math.max(parseLengthValue((element as any).arrow_size, 1), 0.01)
+      const fontSize = Math.max(parseLengthValue((element as any).font_size, 1), 0.01)
+      const offsetDistance = isFabrication
+        ? parseLengthValue((element as any).offset, 0)
+        : 0
+
+      const startShifted: Point = {
+        x: fromPoint.x + normal.x * offsetDistance,
+        y: fromPoint.y + normal.y * offsetDistance,
+      }
+      const endShifted: Point = {
+        x: toPoint.x + normal.x * offsetDistance,
+        y: toPoint.y + normal.y * offsetDistance,
+      }
+
+      const midpoint: Point = {
+        x: (startShifted.x + endShifted.x) / 2,
+        y: (startShifted.y + endShifted.y) / 2,
+      }
+
+      const providedText =
+        typeof (element as any).text === "string"
+          ? (element as any).text.trim()
+          : undefined
+
+      const labelText = providedText && providedText.length
+        ? providedText
+        : distance.toFixed(2)
+
+      const rawLayer = (element as any).layer
+      const dimensionLayer = isFabrication
+        ? rawLayer === "bottom" || rawLayer === "bottom_fabrication"
+          ? "bottom_fabrication"
+          : "top_fabrication"
+        : "dwgs_user"
+
+      const primitives: (Primitive & MetaData)[] = []
+      const lineWidth = Math.max(arrowSize * 0.1, 0.05)
+      const arrowAngle = Math.PI / 6
+
+      const pushLine = (
+        prefix: string,
+        line: { x1: number; y1: number; x2: number; y2: number; width?: number },
+      ) => {
+        primitives.push({
+          _pcb_drawing_object_id: getNewPcbDrawingObjectId(prefix),
+          pcb_drawing_type: "line",
+          x1: line.x1,
+          y1: line.y1,
+          x2: line.x2,
+          y2: line.y2,
+          width: line.width ?? lineWidth,
+          squareCap: false,
+          layer: dimensionLayer,
+          _element: element,
+          _parent_pcb_component,
+          _parent_source_component,
+          _source_port,
+        })
+      }
+
+      const createArrow = (point: Point, direction: Point, prefix: string) => {
+        const left = rotateVector(direction, arrowAngle)
+        const right = rotateVector(direction, -arrowAngle)
+
+        pushLine(prefix, {
+          x1: point.x,
+          y1: point.y,
+          x2: point.x + left.x * arrowSize,
+          y2: point.y + left.y * arrowSize,
+        })
+
+        pushLine(prefix, {
+          x1: point.x,
+          y1: point.y,
+          x2: point.x + right.x * arrowSize,
+          y2: point.y + right.y * arrowSize,
+        })
+      }
+
+      if (Math.abs(offsetDistance) > 1e-6) {
+        pushLine("dimension_extension", {
+          x1: fromPoint.x,
+          y1: fromPoint.y,
+          x2: startShifted.x,
+          y2: startShifted.y,
+        })
+
+        pushLine("dimension_extension", {
+          x1: toPoint.x,
+          y1: toPoint.y,
+          x2: endShifted.x,
+          y2: endShifted.y,
+        })
+      }
+
+      pushLine("dimension", {
+        x1: startShifted.x,
+        y1: startShifted.y,
+        x2: endShifted.x,
+        y2: endShifted.y,
+      })
+
+      createArrow(startShifted, unit, "dimension_arrow")
+      createArrow(endShifted, { x: -unit.x, y: -unit.y }, "dimension_arrow")
+
+      if (labelText) {
+        const textDistanceFromLine = Math.max(arrowSize * 1.2, fontSize * 0.6)
+        const offsetSign = offsetDistance >= 0 ? 1 : -1
+        const textPosition: Point = {
+          x: midpoint.x + normal.x * textDistanceFromLine * offsetSign,
+          y: midpoint.y + normal.y * textDistanceFromLine * offsetSign,
+        }
+
+        const angleDeg = ((Math.atan2(unit.y, unit.x) * 180) / Math.PI + 360) % 360
+        let textAngleDeg = angleDeg
+        if (textAngleDeg > 90 && textAngleDeg < 270) {
+          textAngleDeg = (textAngleDeg + 180) % 360
+        }
+
+        primitives.push({
+          _pcb_drawing_object_id: getNewPcbDrawingObjectId("dimension_text"),
+          pcb_drawing_type: "text",
+          x: textPosition.x,
+          y: textPosition.y,
+          layer: dimensionLayer,
+          size: fontSize,
+          align: "center",
+          text: labelText,
+          ccw_rotation: textAngleDeg,
+          _element: element,
+          _parent_pcb_component,
+          _parent_source_component,
+          _source_port,
+        })
+      }
+
+      return primitives
     }
 
     case "pcb_silkscreen_line": {
