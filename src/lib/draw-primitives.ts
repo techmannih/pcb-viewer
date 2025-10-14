@@ -33,19 +33,19 @@ function getColorOverride(primitive: Primitive): string | undefined {
 
 function getColor(primitive: Primitive): string {
   const override = getColorOverride(primitive)
-  const layerColor =
-    LAYER_NAME_TO_COLOR[primitive.layer as keyof typeof LAYER_NAME_TO_COLOR]
+  const layerColors = LAYER_NAME_TO_COLOR as Record<string, string>
+  const layerColor = layerColors[primitive.layer]
   const baseColor = override ?? layerColor ?? "white"
 
-  if (primitive.is_mouse_over || primitive.is_in_highlighted_net) {
-    try {
-      return color(baseColor).lighten(0.5).rgb().toString()
-    } catch {
-      return baseColor
-    }
+  if (!primitive.is_mouse_over && !primitive.is_in_highlighted_net) {
+    return baseColor
   }
 
-  return baseColor
+  try {
+    return color(baseColor).lighten(0.5).rgb().toString()
+  } catch {
+    return baseColor
+  }
 }
 
 export const drawLine = (drawer: Drawer, line: Line) => {

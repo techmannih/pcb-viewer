@@ -1,5 +1,5 @@
 import { lineAlphabet } from "../assets/alphabet"
-import { getNewPcbDrawingObjectId } from "./convert-element-to-primitive"
+import { getNewPcbDrawingObjectId } from "./pcb-drawing-id"
 import type { Line, Text } from "./types"
 
 export const LETTER_HEIGHT_TO_WIDTH_RATIO = 0.6
