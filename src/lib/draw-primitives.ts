@@ -15,18 +15,46 @@ import type {
 } from "./types"
 import color from "color"
 
-function getColor(primitive: Primitive): string {
-  if (primitive.is_mouse_over || primitive.is_in_highlighted_net) {
-    return color(
-      LAYER_NAME_TO_COLOR[primitive.layer as keyof typeof LAYER_NAME_TO_COLOR],
-    )
-      .lighten(0.5)
-      .rgb()
-      .toString()
+const getBaseColor = (primitive: Primitive): string => {
+  const primitiveColorCandidate = (primitive as any)?.color
+  if (
+    typeof primitiveColorCandidate === "string" &&
+    primitiveColorCandidate.trim()
+  ) {
+    return primitiveColorCandidate.trim()
   }
-  return LAYER_NAME_TO_COLOR[
-    primitive.layer as keyof typeof LAYER_NAME_TO_COLOR
-  ]
+
+  const elementColorCandidate = (primitive as any)?._element as
+    | { color?: unknown }
+    | undefined
+
+  const elementColor =
+    elementColorCandidate && typeof elementColorCandidate.color === "string"
+      ? elementColorCandidate.color.trim()
+      : undefined
+
+  if (elementColor) {
+    return elementColor
+  }
+
+  const layerColor =
+    LAYER_NAME_TO_COLOR[primitive.layer as keyof typeof LAYER_NAME_TO_COLOR]
+
+  return layerColor ?? "white"
+}
+
+function getColor(primitive: Primitive): string {
+  const baseColor = getBaseColor(primitive)
+
+  if (primitive.is_mouse_over || primitive.is_in_highlighted_net) {
+    try {
+      return color(baseColor).lighten(0.5).rgb().toString()
+    } catch {
+      return baseColor
+    }
+  }
+
+  return baseColor
 }
 
 export const drawLine = (drawer: Drawer, line: Line) => {
