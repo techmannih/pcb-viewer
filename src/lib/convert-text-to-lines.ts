@@ -1,5 +1,5 @@
 import { lineAlphabet } from "../assets/alphabet"
-import { getNewPcbDrawingObjectId } from "./convert-element-to-primitive"
+import { getNewPcbDrawingObjectId } from "./pcb-drawing-id"
 import type { Line, Text } from "./types"
 
 export const LETTER_HEIGHT_TO_WIDTH_RATIO = 0.6
@@ -66,6 +66,7 @@ export const convertTextToLines = (text: Text): Line[] => {
         width: strokeWidth,
         layer: text.layer,
         unit: text.unit,
+        color: text.color,
       })
     }
     current_x_origin_for_char_box += target_width_char + space_between_chars

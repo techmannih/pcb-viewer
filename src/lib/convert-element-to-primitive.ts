@@ -2,17 +2,11 @@ import type { AnyCircuitElement, PcbSmtPadRotatedPill } from "circuit-json"
 import { su } from "@tscircuit/circuit-json-util"
 import type { Primitive } from "./types"
 import { type Point, getExpandedStroke } from "./util/expand-stroke"
+import { createDimensionPrimitives } from "./create-dimension-primitives"
+import type { PrimitiveMetadata } from "./primitive-metadata"
+import { getNewPcbDrawingObjectId } from "./pcb-drawing-id"
 
-type MetaData = {
-  _parent_pcb_component?: any
-  _parent_source_component?: any
-  _source_port?: any
-}
-
-let globalPcbDrawingObjectCount = 0
-
-export const getNewPcbDrawingObjectId = (prefix: string) =>
-  `${prefix}_${globalPcbDrawingObjectCount++}`
+type MetaData = PrimitiveMetadata
 
 export const convertElementToPrimitives = (
   element: AnyCircuitElement,
@@ -50,6 +44,63 @@ export const convertElementToPrimitives = (
       )
     : undefined
 
+  const dimensionType = (element as any).type
+
+  const isPoint = (value: any): value is { x: number; y: number } =>
+    value && typeof value.x === "number" && typeof value.y === "number"
+
+  if (dimensionType === "pcb_note_dimension") {
+    const noteDimension = element as any
+    const fromPoint = noteDimension.from as { x: number; y: number }
+    const toPoint = noteDimension.to as { x: number; y: number }
+
+    if (!isPoint(fromPoint) || !isPoint(toPoint)) {
+      return []
+    }
+
+    return createDimensionPrimitives({
+      element: noteDimension,
+      layer: "other",
+      from: fromPoint,
+      to: toPoint,
+      meta: {
+        _element: element,
+        _parent_pcb_component,
+        _parent_source_component,
+        _source_port,
+      },
+    })
+  }
+
+  if (dimensionType === "pcb_fabrication_note_dimension") {
+    const fabricationDimension = element as any
+    const fromPoint = fabricationDimension.from as { x: number; y: number }
+    const toPoint = fabricationDimension.to as { x: number; y: number }
+
+    if (!isPoint(fromPoint) || !isPoint(toPoint)) {
+      return []
+    }
+
+    const layer =
+      fabricationDimension.layer === "bottom"
+        ? "bottom_fabrication"
+        : "top_fabrication"
+
+    return createDimensionPrimitives({
+      element: fabricationDimension,
+      layer,
+      from: fromPoint,
+      to: toPoint,
+      offset: fabricationDimension.offset,
+      meta: {
+        _element: element,
+        _parent_pcb_component,
+        _parent_source_component,
+        _source_port,
+      },
+    })
+  }
+
   switch (element.type) {
     case "pcb_board": {
       const { width, height, center, outline } = element
@@ -57,7 +108,7 @@ export const convertElementToPrimitives = (
       if (outline && outline.length > 2) {
         return outline.map((point, index, array) => {
           return {
-            _pcb_drawing_object_id: `line_${globalPcbDrawingObjectCount++}`,
+            _pcb_drawing_object_id: getNewPcbDrawingObjectId("line"),
             pcb_drawing_type: "line",
             x1: point.x,
             y1: point.y,
@@ -72,7 +123,7 @@ export const convertElementToPrimitives = (
       }
       return [
         {
-          _pcb_drawing_object_id: `line_${globalPcbDrawingObjectCount++}`,
+          _pcb_drawing_object_id: getNewPcbDrawingObjectId("line"),
           pcb_drawing_type: "line",
           x1: center.x - width / 2,
           y1: center.y - height / 2,
@@ -84,7 +135,7 @@ export const convertElementToPrimitives = (
           _element: element,
         },
         {
-          _pcb_drawing_object_id: `line_${globalPcbDrawingObjectCount++}`,
+          _pcb_drawing_object_id: getNewPcbDrawingObjectId("line"),
           pcb_drawing_type: "line",
           x1: center.x - width / 2,
           y1: center.y + height / 2,
@@ -96,7 +147,7 @@ export const convertElementToPrimitives = (
           _element: element,
         },
         {
-          _pcb_drawing_object_id: `line_${globalPcbDrawingObjectCount++}`,
+          _pcb_drawing_object_id: getNewPcbDrawingObjectId("line"),
           pcb_drawing_type: "line",
           x1: center.x - width / 2,
           y1: center.y - height / 2,
@@ -108,7 +159,7 @@ export const convertElementToPrimitives = (
           _element: element,
         },
         {
-          _pcb_drawing_object_id: `line_${globalPcbDrawingObjectCount++}`,
+          _pcb_drawing_object_id: getNewPcbDrawingObjectId("line"),
           pcb_drawing_type: "line",
           x1: center.x + width / 2,
           y1: center.y - height / 2,
@@ -128,7 +179,7 @@ export const convertElementToPrimitives = (
 
         return [
           {
-            _pcb_drawing_object_id: `rect_${globalPcbDrawingObjectCount++}`,
+            _pcb_drawing_object_id: getNewPcbDrawingObjectId("rect"),
             pcb_drawing_type: "rect",
             x,
             y,
@@ -147,7 +198,7 @@ export const convertElementToPrimitives = (
         const { x, y, radius, layer } = element
         return [
           {
-            _pcb_drawing_object_id: `circle_${globalPcbDrawingObjectCount++}`,
+            _pcb_drawing_object_id: getNewPcbDrawingObjectId("circle"),
             pcb_drawing_type: "circle",
             x,
             y,
@@ -163,7 +214,7 @@ export const convertElementToPrimitives = (
         const { layer, points } = element
         return [
           {
-            _pcb_drawing_object_id: `polygon_${globalPcbDrawingObjectCount++}`,
+            _pcb_drawing_object_id: getNewPcbDrawingObjectId("polygon"),
             pcb_drawing_type: "polygon",
             points,
             layer: layer || "top",
@@ -177,7 +228,7 @@ export const convertElementToPrimitives = (
         const { x, y, width, height, layer } = element
         return [
           {
-            _pcb_drawing_object_id: `pill_${globalPcbDrawingObjectCount++}`,
+            _pcb_drawing_object_id: getNewPcbDrawingObjectId("pill"),
             pcb_drawing_type: "pill",
             x,
             y,
@@ -200,7 +251,7 @@ export const convertElementToPrimitives = (
 
         return [
           {
-            _pcb_drawing_object_id: `circle_${globalPcbDrawingObjectCount++}`,
+            _pcb_drawing_object_id: getNewPcbDrawingObjectId("circle"),
             pcb_drawing_type: "circle",
             x,
             y,
@@ -222,7 +273,7 @@ export const convertElementToPrimitives = (
 
         return [
           {
-            _pcb_drawing_object_id: `circle_${globalPcbDrawingObjectCount++}`,
+            _pcb_drawing_object_id: getNewPcbDrawingObjectId("circle"),
             pcb_drawing_type: "circle",
             x,
             y,
@@ -235,7 +286,7 @@ export const convertElementToPrimitives = (
             _source_port,
           },
           {
-            _pcb_drawing_object_id: `circle_${globalPcbDrawingObjectCount++}`,
+            _pcb_drawing_object_id: getNewPcbDrawingObjectId("circle"),
             pcb_drawing_type: "circle",
             x,
             y,
@@ -254,7 +305,7 @@ export const convertElementToPrimitives = (
 
         return [
           {
-            _pcb_drawing_object_id: `oval_${globalPcbDrawingObjectCount++}`,
+            _pcb_drawing_object_id: getNewPcbDrawingObjectId("oval"),
             pcb_drawing_type: "oval",
             x,
             y,
@@ -267,7 +318,7 @@ export const convertElementToPrimitives = (
             _source_port,
           },
           {
-            _pcb_drawing_object_id: `oval_${globalPcbDrawingObjectCount++}`,
+            _pcb_drawing_object_id: getNewPcbDrawingObjectId("oval"),
             _element: element,
             pcb_drawing_type: "oval",
             x,
@@ -283,7 +334,7 @@ export const convertElementToPrimitives = (
 
         return [
           {
-            _pcb_drawing_object_id: `pill_${globalPcbDrawingObjectCount++}`,
+            _pcb_drawing_object_id: getNewPcbDrawingObjectId("pill"),
             pcb_drawing_type: "pill",
             x,
             y,
@@ -297,7 +348,7 @@ export const convertElementToPrimitives = (
             ccw_rotation: element.ccw_rotation,
           },
           {
-            _pcb_drawing_object_id: `pill_${globalPcbDrawingObjectCount++}`,
+            _pcb_drawing_object_id: getNewPcbDrawingObjectId("pill"),
             _element: element,
             pcb_drawing_type: "pill",
             x,
@@ -322,7 +373,7 @@ export const convertElementToPrimitives = (
 
         return [
           {
-            _pcb_drawing_object_id: `rect_${globalPcbDrawingObjectCount++}`,
+            _pcb_drawing_object_id: getNewPcbDrawingObjectId("rect"),
             pcb_drawing_type: "rect",
             x,
             y,
@@ -336,7 +387,7 @@ export const convertElementToPrimitives = (
             roundness: rect_border_radius,
           },
           {
-            _pcb_drawing_object_id: `circle_${globalPcbDrawingObjectCount++}`,
+            _pcb_drawing_object_id: getNewPcbDrawingObjectId("circle"),
             _element: element,
             pcb_drawing_type: "circle",
             x: x + hole_offset_x,
@@ -358,7 +409,7 @@ export const convertElementToPrimitives = (
 
         return [
           {
-            _pcb_drawing_object_id: `rect_${globalPcbDrawingObjectCount++}`,
+            _pcb_drawing_object_id: getNewPcbDrawingObjectId("rect"),
             pcb_drawing_type: "rect",
             x,
             y,
@@ -372,7 +423,7 @@ export const convertElementToPrimitives = (
             roundness: rect_border_radius,
           },
           {
-            _pcb_drawing_object_id: `pill_${globalPcbDrawingObjectCount++}`,
+            _pcb_drawing_object_id: getNewPcbDrawingObjectId("pill"),
             _element: element,
             pcb_drawing_type: "pill",
             x,
@@ -397,7 +448,7 @@ export const convertElementToPrimitives = (
 
         return [
           {
-            _pcb_drawing_object_id: `rect_${globalPcbDrawingObjectCount++}`,
+            _pcb_drawing_object_id: getNewPcbDrawingObjectId("rect"),
             pcb_drawing_type: "rect",
             x,
             y,
@@ -412,7 +463,7 @@ export const convertElementToPrimitives = (
             roundness: rect_border_radius,
           },
           {
-            _pcb_drawing_object_id: `pill_${globalPcbDrawingObjectCount++}`,
+            _pcb_drawing_object_id: getNewPcbDrawingObjectId("pill"),
             _element: element,
             pcb_drawing_type: "pill",
             x,
@@ -433,7 +484,7 @@ export const convertElementToPrimitives = (
 
         return [
           {
-            _pcb_drawing_object_id: `circle_${globalPcbDrawingObjectCount++}`,
+            _pcb_drawing_object_id: getNewPcbDrawingObjectId("circle"),
             pcb_drawing_type: "circle",
             x: center.x,
             y: center.y,
@@ -450,7 +501,7 @@ export const convertElementToPrimitives = (
 
         return [
           {
-            _pcb_drawing_object_id: `rect_${globalPcbDrawingObjectCount++}`,
+            _pcb_drawing_object_id: getNewPcbDrawingObjectId("rect"),
             pcb_drawing_type: "rect",
             x: center.x,
             y: center.y,
@@ -484,7 +535,7 @@ export const convertElementToPrimitives = (
 
         // Generate a single polygon primitive from the expanded stroke
         primitives.push({
-          _pcb_drawing_object_id: `polygon_${globalPcbDrawingObjectCount++}`,
+          _pcb_drawing_object_id: getNewPcbDrawingObjectId("polygon"),
           _element: element,
           pcb_drawing_type: "polygon",
           points: expandedStroke,
@@ -495,7 +546,7 @@ export const convertElementToPrimitives = (
         element.route.forEach((r) => {
           if (r.route_type === "via") {
             primitives.push({
-              _pcb_drawing_object_id: `circle_${globalPcbDrawingObjectCount++}`,
+              _pcb_drawing_object_id: getNewPcbDrawingObjectId("circle"),
               _element: element,
               pcb_drawing_type: "circle",
               x: r.x,
@@ -515,7 +566,7 @@ export const convertElementToPrimitives = (
         if (route.route_type === "wire") {
           if (prevX !== null && prevY !== null) {
             primitives.push({
-              _pcb_drawing_object_id: `line_${globalPcbDrawingObjectCount++}`,
+              _pcb_drawing_object_id: getNewPcbDrawingObjectId("line"),
               _element: element,
               pcb_drawing_type: "line",
               x1: prevX,
@@ -543,7 +594,7 @@ export const convertElementToPrimitives = (
 
       return [
         {
-          _pcb_drawing_object_id: `circle_${globalPcbDrawingObjectCount++}`,
+          _pcb_drawing_object_id: getNewPcbDrawingObjectId("circle"),
           pcb_drawing_type: "circle",
           x,
           y,
@@ -554,7 +605,7 @@ export const convertElementToPrimitives = (
           _parent_source_component,
         },
         {
-          _pcb_drawing_object_id: `circle_${globalPcbDrawingObjectCount++}`,
+          _pcb_drawing_object_id: getNewPcbDrawingObjectId("circle"),
           _element: element,
           pcb_drawing_type: "circle",
           x,
@@ -565,7 +616,7 @@ export const convertElementToPrimitives = (
           _parent_source_component,
         },
         {
-          _pcb_drawing_object_id: `circle_${globalPcbDrawingObjectCount++}`,
+          _pcb_drawing_object_id: getNewPcbDrawingObjectId("circle"),
           pcb_drawing_type: "circle",
           x,
           y,
@@ -581,7 +632,7 @@ export const convertElementToPrimitives = (
     case "pcb_silkscreen_rect": {
       return [
         {
-          _pcb_drawing_object_id: `rect_${globalPcbDrawingObjectCount++}`,
+          _pcb_drawing_object_id: getNewPcbDrawingObjectId("rect"),
           pcb_drawing_type: "rect",
           x: element.center.x,
           y: element.center.y,
@@ -601,7 +652,7 @@ export const convertElementToPrimitives = (
     case "pcb_silkscreen_circle": {
       return [
         {
-          _pcb_drawing_object_id: `circle_${globalPcbDrawingObjectCount++}`,
+          _pcb_drawing_object_id: getNewPcbDrawingObjectId("circle"),
           pcb_drawing_type: "circle",
           x: element.center.x,
           y: element.center.y,
@@ -615,7 +666,7 @@ export const convertElementToPrimitives = (
     case "pcb_silkscreen_oval": {
       return [
         {
-          _pcb_drawing_object_id: `oval_${globalPcbDrawingObjectCount++}`,
+          _pcb_drawing_object_id: getNewPcbDrawingObjectId("oval"),
           pcb_drawing_type: "oval",
           x: element.center.x,
           y: element.center.y,
@@ -631,7 +682,7 @@ export const convertElementToPrimitives = (
     case "pcb_silkscreen_pill": {
       return [
         {
-          _pcb_drawing_object_id: `pill_${globalPcbDrawingObjectCount++}`,
+          _pcb_drawing_object_id: getNewPcbDrawingObjectId("pill"),
           pcb_drawing_type: "pill",
           // @ts-ignore
           x: element.center.x,
@@ -651,7 +702,7 @@ export const convertElementToPrimitives = (
     case "pcb_silkscreen_line": {
       return [
         {
-          _pcb_drawing_object_id: `line_${globalPcbDrawingObjectCount++}`,
+          _pcb_drawing_object_id: getNewPcbDrawingObjectId("line"),
           pcb_drawing_type: "line",
           x1: element.x1,
           y1: element.y1,
@@ -692,7 +743,7 @@ export const convertElementToPrimitives = (
         .map((point, index) => {
           const nextPoint = route[index + 1]
           return {
-            _pcb_drawing_object_id: `line_${globalPcbDrawingObjectCount++}`,
+            _pcb_drawing_object_id: getNewPcbDrawingObjectId("line"),
             pcb_drawing_type: "line",
             x1: point.x,
             y1: point.y,
@@ -713,7 +764,7 @@ export const convertElementToPrimitives = (
     case "pcb_silkscreen_text": {
       return [
         {
-          _pcb_drawing_object_id: `text_${globalPcbDrawingObjectCount++}`,
+          _pcb_drawing_object_id: getNewPcbDrawingObjectId("text"),
           pcb_drawing_type: "text",
           x: element.anchor_position.x,
           y: element.anchor_position.y,
