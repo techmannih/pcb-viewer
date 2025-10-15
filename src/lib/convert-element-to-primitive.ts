@@ -2,8 +2,10 @@ import type { AnyCircuitElement, PcbSmtPadRotatedPill } from "circuit-json"
 import { su } from "@tscircuit/circuit-json-util"
 import type { Primitive } from "./types"
 import { type Point, getExpandedStroke } from "./util/expand-stroke"
+import { createDimensionPrimitives } from "./create-dimension-primitives"
 
 type MetaData = {
+  _element?: AnyCircuitElement
   _parent_pcb_component?: any
   _parent_source_component?: any
   _source_port?: any
@@ -796,6 +798,64 @@ export const convertElementToPrimitives = (
           text: element.text,
         },
       ]
+    }
+    case "pcb_note_dimension": {
+      const noteDimension = element as unknown as {
+        from: { x: number; y: number }
+        to: { x: number; y: number }
+        offset?: number
+      }
+
+      if (!noteDimension.from || !noteDimension.to) {
+        return []
+      }
+
+      return createDimensionPrimitives({
+        element,
+        layer: "other",
+        from: noteDimension.from,
+        to: noteDimension.to,
+        offset: noteDimension.offset,
+        meta: {
+          _element: element,
+          _parent_pcb_component,
+          _parent_source_component,
+          _source_port,
+        },
+        getId: getNewPcbDrawingObjectId,
+      })
+    }
+    case "pcb_fabrication_note_dimension": {
+      const fabricationDimension = element as unknown as {
+        from: { x: number; y: number }
+        to: { x: number; y: number }
+        offset?: number
+        layer?: string
+      }
+
+      if (!fabricationDimension.from || !fabricationDimension.to) {
+        return []
+      }
+
+      const resolvedLayer =
+        fabricationDimension.layer === "bottom"
+          ? "bottom_fabrication"
+          : "top_fabrication"
+
+      return createDimensionPrimitives({
+        element,
+        layer: resolvedLayer,
+        from: fabricationDimension.from,
+        to: fabricationDimension.to,
+        offset: fabricationDimension.offset,
+        meta: {
+          _element: element,
+          _parent_pcb_component,
+          _parent_source_component,
+          _source_port,
+        },
+        getId: getNewPcbDrawingObjectId,
+      })
     }
     case "pcb_cutout": {
       const cutoutElement = element as any
