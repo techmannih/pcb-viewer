@@ -1,14 +1,16 @@
 import type {
   AnyCircuitElement,
-  PcbNoteLine,
-  PcbNoteRect,
-  PcbNotePath,
-  PcbNoteText,
   PcbNoteDimension,
+  PcbNoteLine,
+  PcbNotePath,
+  PcbNoteRect,
+  PcbNoteText,
+  PcbSmtPad,
   PcbSmtPadRotatedPill,
 } from "circuit-json"
 import { su } from "@tscircuit/circuit-json-util"
-import type { Primitive } from "./types"
+import type { PointWithBulge, Primitive } from "./types"
+import { flattenBulgePoints } from "./util/flatten-bulge-points"
 import { type Point, getExpandedStroke } from "./util/expand-stroke"
 
 type MetaData = {
@@ -168,12 +170,19 @@ export const convertElementToPrimitives = (
           },
         ]
       } else if (element.shape === "polygon") {
-        const { layer, points } = element
+        const { layer, points } = element as PcbSmtPad & {
+          points?: PointWithBulge[]
+        }
+
+        const polygonPoints = flattenBulgePoints(
+          Array.isArray(points) ? points : undefined,
+        )
+
         return [
           {
             _pcb_drawing_object_id: `polygon_${globalPcbDrawingObjectCount++}`,
             pcb_drawing_type: "polygon",
-            points,
+            points: polygonPoints,
             layer: layer || "top",
             _element: element,
             _parent_pcb_component,
