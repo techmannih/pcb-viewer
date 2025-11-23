@@ -481,18 +481,6 @@ export class Drawer {
    */
   orderAndFadeLayers() {
     const { canvasLayerMap, foregroundLayer } = this
-    const opaqueLayers = new Set([
-      foregroundLayer,
-      "drill",
-      "other",
-      "board",
-      foregroundLayer === "top"
-        ? "top_silkscreen"
-        : foregroundLayer === "bottom"
-          ? "bottom_silkscreen"
-          : "",
-    ])
-
     const associatedSilkscreen =
       foregroundLayer === "top"
         ? "top_silkscreen"
@@ -500,8 +488,25 @@ export class Drawer {
           ? "bottom_silkscreen"
           : undefined
 
+    const associatedMask =
+      foregroundLayer === "top"
+        ? "f_mask"
+        : foregroundLayer === "bottom"
+          ? "b_mask"
+          : undefined
+
+    const opaqueLayers = new Set([
+      foregroundLayer,
+      "drill",
+      "other",
+      "board",
+      ...(associatedMask ? [associatedMask] : []),
+      ...(associatedSilkscreen ? [associatedSilkscreen] : []),
+    ])
+
     const layersToShiftToTop = [
       foregroundLayer,
+      ...(associatedMask ? [associatedMask] : []),
       ...(associatedSilkscreen ? [associatedSilkscreen] : []),
     ]
 
@@ -510,6 +515,7 @@ export class Drawer {
         (l) => !layersToShiftToTop.includes(l as any),
       ),
       foregroundLayer,
+      ...(associatedMask ? [associatedMask] : []),
       "drill",
       ...(associatedSilkscreen ? [associatedSilkscreen] : []),
     ]
