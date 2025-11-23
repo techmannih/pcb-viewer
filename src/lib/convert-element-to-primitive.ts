@@ -29,6 +29,16 @@ let globalPcbDrawingObjectCount = 0
 export const getNewPcbDrawingObjectId = (prefix: string) =>
   `${prefix}_${globalPcbDrawingObjectCount++}`
 
+const PLATED_HOLE_SOLDERMASK_COLOR = {
+  top: "rgb(18, 82, 50)",
+  bottom: "rgb(77, 127, 196)",
+}
+
+const getPlatedHoleSolderMaskColor = (layer: string | undefined) =>
+  layer === "bottom"
+    ? PLATED_HOLE_SOLDERMASK_COLOR.bottom
+    : PLATED_HOLE_SOLDERMASK_COLOR.top
+
 const normalizePolygonPoints = (points: Point[] | undefined) =>
   (points ?? []).map((point) => ({
     x: distance.parse(point.x),
@@ -338,6 +348,12 @@ export const convertElementToPrimitives = (
       return []
     }
     case "pcb_plated_hole": {
+      const isCoveredWithSolderMask =
+        (element as any).is_covered_with_solder_mask === true
+
+      const color = (layer: string | undefined) =>
+        isCoveredWithSolderMask ? getPlatedHoleSolderMaskColor(layer) : undefined
+
       if (element.shape === "circle") {
         const { x, y, hole_diameter, outer_diameter } = element
 
@@ -350,6 +366,7 @@ export const convertElementToPrimitives = (
             r: outer_diameter / 2,
             // TODO support layer on pcb_plated_hole
             layer: "top",
+            color: color("top"),
             _element: element,
             _parent_pcb_component,
             _parent_source_component,
@@ -382,6 +399,7 @@ export const convertElementToPrimitives = (
             rX: outer_width / 2,
             rY: outer_height / 2,
             layer: "top", // TODO: Confirm layer handling for oval plated holes
+            color: color("top"),
             _element: element,
             _parent_pcb_component,
             _parent_source_component,
@@ -411,6 +429,7 @@ export const convertElementToPrimitives = (
             w: outer_width,
             h: outer_height,
             layer: "top", // TODO: Confirm layer handling for oval plated holes
+            color: color("top"),
             _element: element,
             _parent_pcb_component,
             _parent_source_component,
@@ -450,6 +469,7 @@ export const convertElementToPrimitives = (
             w: rect_pad_width,
             h: rect_pad_height,
             layer: "top", // Rectangular pad on top layer
+            color: color("top"),
             _element: element,
             _parent_pcb_component,
             _parent_source_component,
@@ -464,6 +484,7 @@ export const convertElementToPrimitives = (
             w: rect_pad_width,
             h: rect_pad_height,
             layer: "bottom", // Rectangular pad on bottom layer
+            color: color("bottom"),
             _element: element,
             _parent_pcb_component,
             _parent_source_component,
@@ -500,6 +521,7 @@ export const convertElementToPrimitives = (
             w: rect_pad_width,
             h: rect_pad_height,
             layer: "top", // Rectangular pad on top layer
+            color: color("top"),
             _element: element,
             _parent_pcb_component,
             _parent_source_component,
@@ -514,6 +536,7 @@ export const convertElementToPrimitives = (
             w: rect_pad_width,
             h: rect_pad_height,
             layer: "bottom", // Rectangular pad on bottom layer
+            color: color("bottom"),
             _element: element,
             _parent_pcb_component,
             _parent_source_component,
@@ -553,6 +576,7 @@ export const convertElementToPrimitives = (
             w: rect_pad_width,
             h: rect_pad_height,
             layer: "top", // Rectangular pad on top layer
+            color: color("top"),
             _element: element,
             _parent_pcb_component,
             _parent_source_component,
@@ -568,6 +592,7 @@ export const convertElementToPrimitives = (
             w: rect_pad_width,
             h: rect_pad_height,
             layer: "bottom", // Rectangular pad on bottom layer
+            color: color("bottom"),
             _element: element,
             _parent_pcb_component,
             _parent_source_component,
@@ -620,6 +645,7 @@ export const convertElementToPrimitives = (
               pcb_drawing_type: "polygon",
               points: translatedPoints,
               layer: layer,
+              color: color(layer),
               _element: element,
               _parent_pcb_component,
               _parent_source_component,
