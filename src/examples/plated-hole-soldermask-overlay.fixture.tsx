@@ -48,6 +48,22 @@ export const PlatedHoleSoldermaskOverlay: React.FC = () => {
       pcb_component_id: "pcb_generic_component_0",
       port_hints: [],
     },
+    {
+      type: "pcb_hole",
+      x: -4,
+      y: -6,
+      hole_shape: "circle",
+      hole_diameter: 2.2,
+      is_covered_with_solder_mask: true,
+    },
+    {
+      type: "pcb_hole",
+      x: 4,
+      y: -6,
+      hole_shape: "circle",
+      hole_diameter: 2.2,
+      is_covered_with_solder_mask: false,
+    },
   ]
 
   return (

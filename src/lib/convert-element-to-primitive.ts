@@ -42,6 +42,20 @@ const getPlatedHoleSoldermaskColor = (layer: "top" | "bottom") =>
 const getPlatedHoleSoldermaskLayer = (layer: "top" | "bottom") =>
   layer === "top" ? "f_mask" : "b_mask"
 
+const getSoldermaskLayersForHole = (
+  isCoveredWithSolderMask: boolean,
+  layer?: "top" | "bottom",
+) => {
+  if (!isCoveredWithSolderMask) return []
+  if (layer === "top" || layer === "bottom") {
+    return [getPlatedHoleSoldermaskLayer(layer)]
+  }
+  return ["f_mask", "b_mask"] as const
+}
+
+const getSoldermaskColorForLayer = (layer: "f_mask" | "b_mask") =>
+  getPlatedHoleSoldermaskColor(layer === "f_mask" ? "top" : "bottom")
+
 export const convertElementToPrimitives = (
   element: AnyCircuitElement,
   allElements: AnyCircuitElement[],
@@ -278,10 +292,38 @@ export const convertElementToPrimitives = (
       return []
     }
     case "pcb_hole": {
+      const isCoveredWithSolderMask =
+        (element as any).is_covered_with_solder_mask === true
+      const holeLayer: "top" | "bottom" | undefined =
+        (element as any).layer === "bottom"
+          ? "bottom"
+          : (element as any).layer === "top"
+            ? "top"
+            : undefined
+
       if (element.hole_shape === "circle" || !element.hole_shape) {
         const { x, y, hole_diameter } = element
 
+        const soldermaskLayers = getSoldermaskLayersForHole(
+          isCoveredWithSolderMask,
+          holeLayer,
+        )
+
+        const soldermaskPrimitives = soldermaskLayers.map((layer) => ({
+          _pcb_drawing_object_id: `circle_${globalPcbDrawingObjectCount++}`,
+          pcb_drawing_type: "circle" as const,
+          x,
+          y,
+          r: hole_diameter / 2,
+          layer,
+          color: getSoldermaskColorForLayer(layer),
+          _element: element,
+          _parent_pcb_component,
+          _parent_source_component,
+        }))
+
         return [
+          ...soldermaskPrimitives,
           {
             _pcb_drawing_object_id: `circle_${globalPcbDrawingObjectCount++}`,
             pcb_drawing_type: "circle",
@@ -304,7 +346,28 @@ export const convertElementToPrimitives = (
           return []
         }
 
+        const soldermaskLayers = getSoldermaskLayersForHole(
+          isCoveredWithSolderMask,
+          holeLayer,
+        )
+
+        const soldermaskPrimitives = soldermaskLayers.map((layer) => ({
+          _pcb_drawing_object_id: `pill_${globalPcbDrawingObjectCount++}`,
+          pcb_drawing_type: "pill" as const,
+          x,
+          y,
+          w: hole_width,
+          h: hole_height,
+          layer,
+          color: getSoldermaskColorForLayer(layer),
+          _element: element,
+          _parent_pcb_component,
+          _parent_source_component,
+          ccw_rotation: (element as PcbHoleRotatedPill).ccw_rotation,
+        }))
+
         return [
+          ...soldermaskPrimitives,
           {
             _pcb_drawing_object_id: `pill_${globalPcbDrawingObjectCount++}`,
             pcb_drawing_type: "pill",
@@ -326,7 +389,27 @@ export const convertElementToPrimitives = (
           return []
         }
 
+        const soldermaskLayers = getSoldermaskLayersForHole(
+          isCoveredWithSolderMask,
+          holeLayer,
+        )
+
+        const soldermaskPrimitives = soldermaskLayers.map((layer) => ({
+          _pcb_drawing_object_id: `rect_${globalPcbDrawingObjectCount++}`,
+          pcb_drawing_type: "rect" as const,
+          x,
+          y,
+          w: hole_width,
+          h: hole_height,
+          layer,
+          color: getSoldermaskColorForLayer(layer),
+          _element: element,
+          _parent_pcb_component,
+          _parent_source_component,
+        }))
+
         return [
+          ...soldermaskPrimitives,
           {
             _pcb_drawing_object_id: `rect_${globalPcbDrawingObjectCount++}`,
             pcb_drawing_type: "rect",
