@@ -17,6 +17,7 @@ import { su } from "@tscircuit/circuit-json-util"
 import type { Primitive } from "./types"
 import { type Point, getExpandedStroke } from "./util/expand-stroke"
 import { distance } from "circuit-json"
+import colors from "./colors"
 
 type MetaData = {
   _parent_pcb_component?: any
@@ -34,6 +35,12 @@ const normalizePolygonPoints = (points: Point[] | undefined) =>
     x: distance.parse(point.x),
     y: distance.parse(point.y),
   }))
+
+const getPlatedHoleSoldermaskColor = (layer: "top" | "bottom") =>
+  colors.board.plated_hole_soldermask?.[layer]
+
+const getPlatedHoleSoldermaskLayer = (layer: "top" | "bottom") =>
+  layer === "top" ? "f_mask" : "b_mask"
 
 export const convertElementToPrimitives = (
   element: AnyCircuitElement,
@@ -338,10 +345,40 @@ export const convertElementToPrimitives = (
       return []
     }
     case "pcb_plated_hole": {
+      const isCoveredWithSolderMask =
+        (element as any).is_covered_with_solder_mask === true
+      const platedHoleLayer: "top" | "bottom" =
+        (element as any).layer === "bottom" ? "bottom" : "top"
+
+      const soldermaskLayer = isCoveredWithSolderMask
+        ? getPlatedHoleSoldermaskLayer(platedHoleLayer)
+        : undefined
+
       if (element.shape === "circle") {
         const { x, y, hole_diameter, outer_diameter } = element
 
+        const soldermaskColor = soldermaskLayer
+          ? getPlatedHoleSoldermaskColor(platedHoleLayer)
+          : undefined
+
         return [
+          ...(soldermaskLayer
+            ? [
+                {
+                  _pcb_drawing_object_id: `circle_${globalPcbDrawingObjectCount++}`,
+                  pcb_drawing_type: "circle",
+                  x,
+                  y,
+                  r: outer_diameter / 2,
+                  layer: soldermaskLayer,
+                  color: soldermaskColor,
+                  _element: element,
+                  _parent_pcb_component,
+                  _parent_source_component,
+                  _source_port,
+                } satisfies Primitive & MetaData,
+              ]
+            : []),
           {
             _pcb_drawing_object_id: `circle_${globalPcbDrawingObjectCount++}`,
             pcb_drawing_type: "circle",
@@ -349,7 +386,7 @@ export const convertElementToPrimitives = (
             y,
             r: outer_diameter / 2,
             // TODO support layer on pcb_plated_hole
-            layer: "top",
+            layer: platedHoleLayer,
             _element: element,
             _parent_pcb_component,
             _parent_source_component,
@@ -373,7 +410,29 @@ export const convertElementToPrimitives = (
         const { x, y, outer_height, outer_width, hole_height, hole_width } =
           element
 
+        const soldermaskColor = soldermaskLayer
+          ? getPlatedHoleSoldermaskColor(platedHoleLayer)
+          : undefined
+
         return [
+          ...(soldermaskLayer
+            ? [
+                {
+                  _pcb_drawing_object_id: `oval_${globalPcbDrawingObjectCount++}`,
+                  pcb_drawing_type: "oval",
+                  x,
+                  y,
+                  rX: outer_width / 2,
+                  rY: outer_height / 2,
+                  layer: soldermaskLayer, // TODO: Confirm layer handling for oval plated holes
+                  color: soldermaskColor,
+                  _element: element,
+                  _parent_pcb_component,
+                  _parent_source_component,
+                  _source_port,
+                } satisfies Primitive & MetaData,
+              ]
+            : []),
           {
             _pcb_drawing_object_id: `oval_${globalPcbDrawingObjectCount++}`,
             pcb_drawing_type: "oval",
@@ -381,7 +440,7 @@ export const convertElementToPrimitives = (
             y,
             rX: outer_width / 2,
             rY: outer_height / 2,
-            layer: "top", // TODO: Confirm layer handling for oval plated holes
+            layer: platedHoleLayer, // TODO: Confirm layer handling for oval plated holes
             _element: element,
             _parent_pcb_component,
             _parent_source_component,
@@ -402,7 +461,30 @@ export const convertElementToPrimitives = (
         const { x, y, outer_height, outer_width, hole_height, hole_width } =
           element
 
+        const soldermaskColor = soldermaskLayer
+          ? getPlatedHoleSoldermaskColor(platedHoleLayer)
+          : undefined
+
         return [
+          ...(soldermaskLayer
+            ? [
+                {
+                  _pcb_drawing_object_id: `pill_${globalPcbDrawingObjectCount++}`,
+                  pcb_drawing_type: "pill",
+                  x,
+                  y,
+                  w: outer_width,
+                  h: outer_height,
+                  layer: soldermaskLayer, // TODO: Confirm layer handling for oval plated holes
+                  color: soldermaskColor,
+                  _element: element,
+                  _parent_pcb_component,
+                  _parent_source_component,
+                  _source_port,
+                  ccw_rotation: element.ccw_rotation,
+                } satisfies Primitive & MetaData,
+              ]
+            : []),
           {
             _pcb_drawing_object_id: `pill_${globalPcbDrawingObjectCount++}`,
             pcb_drawing_type: "pill",
@@ -410,7 +492,7 @@ export const convertElementToPrimitives = (
             y,
             w: outer_width,
             h: outer_height,
-            layer: "top", // TODO: Confirm layer handling for oval plated holes
+            layer: platedHoleLayer, // TODO: Confirm layer handling for oval plated holes
             _element: element,
             _parent_pcb_component,
             _parent_source_component,

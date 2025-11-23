@@ -70,8 +70,10 @@ export const DEFAULT_DRAW_ORDER = [
   "inner2",
   "inner1",
   "bottom",
+  "b_mask",
   "bottom_silkscreen",
   "top",
+  "f_mask",
   "top_silkscreen",
   "board",
 ] as const

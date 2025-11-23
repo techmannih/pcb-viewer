@@ -85,6 +85,10 @@ export default {
     pad_plated_hole: "rgb(194, 194, 0)",
     pad_through_hole: "rgb(227, 183, 46)",
     plated_hole: "rgb(26, 196, 210)",
+    plated_hole_soldermask: {
+      top: "rgb(18, 82, 50)",
+      bottom: "rgb(77, 127, 196)",
+    },
     ratsnest: "rgba(245, 255, 213, 0.702)",
     select_overlay: "rgb(4, 255, 67)",
     through_via: "rgb(236, 236, 236)",

@@ -20,8 +20,10 @@ interface Props {
 const orderedLayers = [
   "board",
   "bottom_silkscreen",
+  "b_mask",
   "bottom",
   "top",
+  "f_mask",
   "top_silkscreen",
   "inner1",
   "inner2",
