@@ -55,6 +55,8 @@ const createBoxFromPoints = (
   return { minX, maxX, minY, maxY }
 }
 
+export const getBoundsFromPoints = createBoxFromPoints
+
 const mergeBoundingBoxesInternal = (
   a: BoundingBox,
   b: BoundingBox,
