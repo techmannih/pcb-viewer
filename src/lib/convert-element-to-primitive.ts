@@ -39,18 +39,19 @@ const normalizePolygonPoints = (points: Point[] | undefined) =>
 const getPlatedHoleSoldermaskColor = (layer: "top" | "bottom") =>
   colors.board.plated_hole_soldermask?.[layer]
 
-const getPlatedHoleSoldermaskLayer = (layer: "top" | "bottom") =>
-  layer === "top" ? "f_mask" : "b_mask"
+const getPlatedHoleSoldermaskLayer = (
+  layer: "top" | "bottom",
+): "f_mask" | "b_mask" => (layer === "top" ? "f_mask" : "b_mask")
 
 const getSoldermaskLayersForHole = (
   isCoveredWithSolderMask: boolean,
   layer?: "top" | "bottom",
-) => {
+): ("f_mask" | "b_mask")[] => {
   if (!isCoveredWithSolderMask) return []
   if (layer === "top" || layer === "bottom") {
     return [getPlatedHoleSoldermaskLayer(layer)]
   }
-  return ["f_mask", "b_mask"] as const
+  return ["f_mask", "b_mask"]
 }
 
 const getSoldermaskColorForLayer = (layer: "f_mask" | "b_mask") =>
