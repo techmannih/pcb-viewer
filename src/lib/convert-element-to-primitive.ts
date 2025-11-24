@@ -341,7 +341,7 @@ export const convertElementToPrimitives = (
       if (element.shape === "circle") {
         const { x, y, hole_diameter, outer_diameter } = element
 
-        return [
+        const primitives: (Primitive & MetaData)[] = [
           {
             _pcb_drawing_object_id: `circle_${globalPcbDrawingObjectCount++}`,
             pcb_drawing_type: "circle",
@@ -369,11 +369,42 @@ export const convertElementToPrimitives = (
             // _element: element,
           },
         ]
+
+        if ((element as any).is_covered_with_solder_mask) {
+          primitives.push(
+            {
+              _pcb_drawing_object_id: `circle_${globalPcbDrawingObjectCount++}`,
+              pcb_drawing_type: "circle",
+              x,
+              y,
+              r: outer_diameter / 2,
+              layer: "top_mask",
+              _element: element,
+              _parent_pcb_component,
+              _parent_source_component,
+              _source_port,
+            },
+            {
+              _pcb_drawing_object_id: `circle_${globalPcbDrawingObjectCount++}`,
+              pcb_drawing_type: "circle",
+              x,
+              y,
+              r: outer_diameter / 2,
+              layer: "bottom_mask",
+              _element: element,
+              _parent_pcb_component,
+              _parent_source_component,
+              _source_port,
+            },
+          )
+        }
+
+        return primitives
       } else if (element.shape === "oval") {
         const { x, y, outer_height, outer_width, hole_height, hole_width } =
           element
 
-        return [
+        const primitives: (Primitive & MetaData)[] = [
           {
             _pcb_drawing_object_id: `oval_${globalPcbDrawingObjectCount++}`,
             pcb_drawing_type: "oval",
@@ -398,11 +429,44 @@ export const convertElementToPrimitives = (
             layer: "drill",
           },
         ]
+
+        if ((element as any).is_covered_with_solder_mask) {
+          primitives.push(
+            {
+              _pcb_drawing_object_id: `oval_${globalPcbDrawingObjectCount++}`,
+              pcb_drawing_type: "oval",
+              x,
+              y,
+              rX: outer_width / 2,
+              rY: outer_height / 2,
+              layer: "top_mask",
+              _element: element,
+              _parent_pcb_component,
+              _parent_source_component,
+              _source_port,
+            },
+            {
+              _pcb_drawing_object_id: `oval_${globalPcbDrawingObjectCount++}`,
+              pcb_drawing_type: "oval",
+              x,
+              y,
+              rX: outer_width / 2,
+              rY: outer_height / 2,
+              layer: "bottom_mask",
+              _element: element,
+              _parent_pcb_component,
+              _parent_source_component,
+              _source_port,
+            },
+          )
+        }
+
+        return primitives
       } else if (element.shape === "pill") {
         const { x, y, outer_height, outer_width, hole_height, hole_width } =
           element
 
-        return [
+        const primitives: (Primitive & MetaData)[] = [
           {
             _pcb_drawing_object_id: `pill_${globalPcbDrawingObjectCount++}`,
             pcb_drawing_type: "pill",
@@ -429,6 +493,41 @@ export const convertElementToPrimitives = (
             ccw_rotation: element.ccw_rotation,
           },
         ]
+
+        if ((element as any).is_covered_with_solder_mask) {
+          primitives.push(
+            {
+              _pcb_drawing_object_id: `pill_${globalPcbDrawingObjectCount++}`,
+              pcb_drawing_type: "pill",
+              x,
+              y,
+              w: outer_width,
+              h: outer_height,
+              layer: "top_mask",
+              _element: element,
+              _parent_pcb_component,
+              _parent_source_component,
+              _source_port,
+              ccw_rotation: element.ccw_rotation,
+            },
+            {
+              _pcb_drawing_object_id: `pill_${globalPcbDrawingObjectCount++}`,
+              pcb_drawing_type: "pill",
+              x,
+              y,
+              w: outer_width,
+              h: outer_height,
+              layer: "bottom_mask",
+              _element: element,
+              _parent_pcb_component,
+              _parent_source_component,
+              _source_port,
+              ccw_rotation: element.ccw_rotation,
+            },
+          )
+        }
+
+        return primitives
       } else if (element.shape === "circular_hole_with_rect_pad") {
         const {
           x,

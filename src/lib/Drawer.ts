@@ -44,12 +44,14 @@ export const LAYER_NAME_TO_COLOR = {
   inner8: colors.board.copper.in8,
 
   bottom: colors.board.copper.b,
+  bottom_mask: colors.board.b_mask,
   drill: colors.board.anchor,
   keepout: colors.board.background,
   tkeepout: colors.board.b_crtyd,
   tplace: colors.board.b_silks,
 
   top_silkscreen: colors.board.f_silks,
+  top_mask: colors.board.f_mask,
   bottom_silkscreen: colors.board.b_silks,
 
   top_fabrication: colors.board.f_fab,
@@ -70,8 +72,10 @@ export const DEFAULT_DRAW_ORDER = [
   "inner2",
   "inner1",
   "bottom",
+  "bottom_mask",
   "bottom_silkscreen",
   "top",
+  "top_mask",
   "top_silkscreen",
   "board",
 ] as const
