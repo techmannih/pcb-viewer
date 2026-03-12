@@ -1,5 +1,6 @@
 import { Circuit } from "@tscircuit/core"
 import { PCBViewer } from "../../PCBViewer"
+import { circuitJson } from "./pcb-group.fixture"
 
 export const BasicRectangleBoard = () => {
   const circuit = new Circuit()
@@ -19,20 +20,17 @@ export const TriangleBoard = () => {
   const circuit = new Circuit()
 
   circuit.add(
-    <board
-      pcbX={0}
-      pcbY={0}
-      width="50mm"
-      height="50mm"
-      outline={[
-        { x: -25, y: 0 },
-        { x: 25, y: 0 },
-        { x: 0, y: 25 },
-      ]}
-    />,
+    <board width="10mm" height="10mm">
+      <resistor
+        resistance="1k"
+        footprint="pinrow6_rows1_p2.54mm_id1mm_od1.5mm_male"
+        name="R1"
+      />
+    </board>,
   )
 
   const soup = circuit.getCircuitJson()
+  console.log("ss", soup)
 
   return (
     <div style={{ backgroundColor: "black" }}>
